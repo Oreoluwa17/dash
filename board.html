@@ -164,7 +164,15 @@
   function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
   function showError(t,d,c){document.title='CSV Board';document.body.innerHTML='<div class="error-state"><h2>'+esc(t)+'</h2><p>'+esc(d)+'</p>'+(c?'<code>'+esc(c)+'</code>':'')+' </div>';}
   function fmtDate(iso){if(!iso)return '';try{return new Date(iso).toLocaleString();}catch(_){return iso;}}
-  function downloadBlob(blob,name){var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(function(){URL.revokeObjectURL(a.href);},1000);}
+  function downloadBlob(blob,name){
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=name;
+    a.style.display='none';
+    document.body.appendChild(a);  // required for Firefox & Safari
+    a.click();
+    setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(a.href);},1500);
+  }
 
   // ── decode hash ───────────────────────────────────────────────────────
   var rawHash=window.location.hash.slice(1);
@@ -528,7 +536,17 @@
 
   // ── global handlers ───────────────────────────────────────────────────
   window.toggleExportMenu=function(){document.getElementById('exportMenu').classList.toggle('open');};
-  window.doExport=function(fmt){document.getElementById('exportMenu').classList.remove('open');if(fmt==='csv')exportCSV();else if(fmt==='spss')exportSPSS();else if(fmt==='shp')exportShapefile();};
+  window.doExport=function(fmt){
+    document.getElementById('exportMenu').classList.remove('open');
+    try {
+      if(fmt==='csv')exportCSV();
+      else if(fmt==='spss')exportSPSS();
+      else if(fmt==='shp')exportShapefile();
+    } catch(e) {
+      alert('Export failed: '+e.message+'\n\nCheck the browser console for details.');
+      console.error('Export error:',e);
+    }
+  };
   window.switchTab=function(tab){var iT=tab==='table';document.getElementById('tabTable').classList.toggle('active',iT);document.getElementById('tabMap').classList.toggle('active',!iT);document.getElementById('tableView').classList.toggle('active',iT);document.getElementById('mapView').classList.toggle('active',!iT);if(!iT){setTimeout(function(){initMap();if(leafletMap)leafletMap.invalidateSize();},60);}};
   window.onSearch=function(val){filterText=val;renderTable();if(leafletMap)renderMarkers();};
   window.sortBy=function(col){sortDir=sortCol===col?sortDir*-1:1;sortCol=col;renderTable();};
