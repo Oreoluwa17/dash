@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CSV Board — Upload</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f8f7f4; --surface: #ffffff; --border: #e4e2db; --border-strong: #c8c5bb;
+    --text-primary: #1a1916; --text-secondary: #6b6860; --text-hint: #a09d96;
+    --accent-bg: #1a1916; --accent-text: #f8f7f4;
+    --success: #2d6a4f; --success-bg: #eaf4ef;
+    --error: #9b2c2c; --error-bg: #fdf0f0;
+    --radius: 10px; --radius-sm: 6px;
+  }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text-primary); min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 80px 24px 60px; }
+  header { text-align: center; margin-bottom: 56px; }
+  .wordmark { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-hint); margin-bottom: 28px; }
+  h1 { font-size: clamp(28px, 5vw, 42px); font-weight: 300; line-height: 1.2; letter-spacing: -0.02em; max-width: 520px; }
+  h1 strong { font-weight: 500; }
+  .sub { margin-top: 14px; font-size: 15px; color: var(--text-secondary); line-height: 1.6; max-width: 420px; margin-left: auto; margin-right: auto; }
+  .card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); width: 100%; max-width: 560px; padding: 36px; }
+  .drop-zone { border: 1.5px dashed var(--border-strong); border-radius: var(--radius-sm); padding: 48px 24px; text-align: center; cursor: pointer; transition: background 0.15s, border-color 0.15s; position: relative; }
+  .drop-zone:hover, .drop-zone.drag-over { background: var(--bg); border-color: var(--accent-bg); }
+  .drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .drop-icon { width: 40px; height: 40px; margin: 0 auto 14px; border: 1.5px solid var(--border-strong); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+  .drop-icon svg { width: 18px; height: 18px; stroke: var(--text-secondary); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .drop-label { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
+  .drop-label strong { color: var(--text-primary); font-weight: 500; }
+  .drop-hint { font-size: 12px; color: var(--text-hint); margin-top: 6px; font-family: 'DM Mono', monospace; }
+  .file-preview { display: none; margin-top: 20px; padding: 14px 16px; background: var(--bg); border-radius: var(--radius-sm); border: 0.5px solid var(--border); }
+  .file-preview.visible { display: flex; align-items: center; gap: 12px; }
+  .file-icon { width: 32px; height: 32px; border-radius: var(--radius-sm); background: var(--text-primary); color: var(--bg); display: flex; align-items: center; justify-content: center; font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 500; flex-shrink: 0; }
+  .file-meta { flex: 1; min-width: 0; }
+  .file-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file-size { font-size: 12px; color: var(--text-hint); margin-top: 2px; font-family: 'DM Mono', monospace; }
+  .file-remove { background: none; border: none; cursor: pointer; color: var(--text-hint); font-size: 18px; line-height: 1; padding: 4px; border-radius: 4px; }
+  .file-remove:hover { color: var(--error); }
+  .field-group { margin-top: 24px; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: 12px; font-weight: 500; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.06em; font-family: 'DM Mono', monospace; }
+  .field select, .field input[type="text"] { width: 100%; padding: 9px 12px; font-size: 13px; font-family: 'DM Sans', sans-serif; background: var(--surface); border: 0.5px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-primary); transition: border-color 0.15s; }
+  .field select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b6860' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; cursor: pointer; }
+  .field select:focus, .field input:focus { outline: none; border-color: var(--accent-bg); }
+  .field select:disabled { opacity: 0.4; cursor: not-allowed; }
+  .field input::placeholder { color: var(--text-hint); }
+  .divider { border: none; border-top: 0.5px solid var(--border); margin: 28px 0; }
+  .msg { padding: 12px 14px; border-radius: var(--radius-sm); font-size: 13px; line-height: 1.5; margin-bottom: 16px; display: none; }
+  .msg.visible { display: block; }
+  .msg.error { background: var(--error-bg); color: var(--error); border: 0.5px solid #f5c6c6; }
+  .msg.success { background: var(--success-bg); color: var(--success); border: 0.5px solid #b7dfcc; }
+  .btn-primary { width: 100%; padding: 13px; background: var(--accent-bg); color: var(--accent-text); border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: opacity 0.15s, transform 0.1s; }
+  .btn-primary:hover:not(:disabled) { opacity: 0.88; }
+  .btn-primary:active:not(:disabled) { transform: scale(0.99); }
+  .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+  .result-box { display: none; margin-top: 28px; }
+  .result-box.visible { display: block; }
+  .result-label { font-size: 12px; font-weight: 500; color: var(--text-hint); text-transform: uppercase; letter-spacing: 0.08em; font-family: 'DM Mono', monospace; margin-bottom: 8px; }
+  .result-link-row { display: flex; align-items: center; gap: 8px; background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-sm); padding: 10px 14px; }
+  .result-url { flex: 1; font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .btn-copy, .btn-open { background: none; border: 0.5px solid var(--border-strong); border-radius: var(--radius-sm); padding: 5px 12px; font-size: 12px; font-family: 'DM Sans', sans-serif; cursor: pointer; white-space: nowrap; transition: background 0.12s, color 0.12s; color: var(--text-primary); }
+  .btn-copy:hover { background: var(--accent-bg); color: var(--accent-text); border-color: var(--accent-bg); }
+  .btn-open { background: var(--accent-bg); color: var(--accent-text); border-color: var(--accent-bg); }
+  .btn-open:hover { opacity: 0.85; }
+  .stats-row { display: flex; gap: 12px; margin-top: 10px; font-size: 12px; color: var(--text-hint); font-family: 'DM Mono', monospace; flex-wrap: wrap; align-items: center; }
+  .badge { padding: 2px 8px; background: var(--success-bg); color: var(--success); border-radius: 4px; font-size: 11px; }
+  .how-it-works { margin-top: 48px; width: 100%; max-width: 560px; }
+  .how-label { font-size: 11px; font-weight: 500; color: var(--text-hint); text-transform: uppercase; letter-spacing: 0.1em; font-family: 'DM Mono', monospace; margin-bottom: 16px; }
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .step { padding: 16px; background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-sm); }
+  .step-num { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-hint); margin-bottom: 8px; }
+  .step-text { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+  @media (max-width: 480px) { .field-row { grid-template-columns: 1fr; } .steps { grid-template-columns: 1fr; } body { padding: 48px 16px; } .card { padding: 24px; } }
+</style>
+</head>
+<body>
+
+<header>
+  <p class="wordmark">CSV Board</p>
+  <h1>Turn a CSV into a <strong>shareable data board</strong></h1>
+  <p class="sub">Upload a CSV with location data. Get a shareable link — table and map views, no account needed.</p>
+</header>
+
+<div class="card">
+  <div class="drop-zone" id="dropZone">
+    <input type="file" id="fileInput" accept=".csv" />
+    <div class="drop-icon">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    </div>
+    <p class="drop-label"><strong>Drop your CSV here</strong><br>or click to browse</p>
+    <p class="drop-hint">.csv · up to ~2000 rows</p>
+  </div>
+
+  <div class="file-preview" id="filePreview">
+    <div class="file-icon">CSV</div>
+    <div class="file-meta">
+      <div class="file-name" id="fileName">—</div>
+      <div class="file-size" id="fileSize">—</div>
+    </div>
+    <button class="file-remove" id="fileRemove" title="Remove">×</button>
+  </div>
+
+  <div class="field-group" id="fieldGroup" style="display:none;">
+    <hr class="divider" />
+    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">Map your CSV columns to location fields.</p>
+    <div class="field-row">
+      <div class="field"><label>Latitude column</label><select id="colLat"><option value="">— select —</option></select></div>
+      <div class="field"><label>Longitude column</label><select id="colLng"><option value="">— select —</option></select></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Label column (optional)</label><select id="colLabel"><option value="">— none —</option></select></div>
+      <div class="field"><label>Board title</label><input type="text" id="boardTitle" placeholder="My data board" /></div>
+    </div>
+  </div>
+
+  <hr class="divider" id="actionDivider" style="display:none;" />
+  <div class="msg" id="msg"></div>
+  <button class="btn-primary" id="generateBtn" disabled>Generate board link</button>
+
+  <div class="result-box" id="resultBox">
+    <p class="result-label">Your board link</p>
+    <div class="result-link-row">
+      <span class="result-url" id="resultUrl"></span>
+      <button class="btn-copy" id="copyBtn">Copy</button>
+      <button class="btn-open" id="openBtn">Open →</button>
+    </div>
+    <div class="stats-row" id="statsRow"></div>
+  </div>
+</div>
+
+<div class="how-it-works">
+  <p class="how-label">How it works</p>
+  <div class="steps">
+    <div class="step"><p class="step-num">01</p><p class="step-text">Upload a CSV with latitude and longitude columns.</p></div>
+    <div class="step"><p class="step-num">02</p><p class="step-text">Map columns to location fields and name your board.</p></div>
+    <div class="step"><p class="step-num">03</p><p class="step-text">Share the link — works on any device, no login needed.</p></div>
+  </div>
+</div>
+
+<!-- pako from cdnjs (more reliable globally) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const dropZone=$('dropZone'), fileInput=$('fileInput'), filePreview=$('filePreview');
+const fileName=$('fileName'), fileSize=$('fileSize'), fileRemove=$('fileRemove');
+const fieldGroup=$('fieldGroup'), actionDivider=$('actionDivider');
+const colLat=$('colLat'), colLng=$('colLng'), colLabel=$('colLabel'), boardTitle=$('boardTitle');
+const generateBtn=$('generateBtn'), msg=$('msg'), resultBox=$('resultBox');
+const resultUrl=$('resultUrl'), copyBtn=$('copyBtn'), openBtn=$('openBtn'), statsRow=$('statsRow');
+
+let parsedData = null;
+
+const showMsg = (t,c) => { msg.textContent=t; msg.className='msg visible '+c; };
+const hideMsg = () => { msg.className='msg'; };
+const fmtBytes = b => b<1024 ? b+' B' : b<1048576 ? (b/1024).toFixed(1)+' KB' : (b/1048576).toFixed(2)+' MB';
+
+// Encode payload: use pako if available, else plain base64
+// Both formats are self-describing via a prefix: "z:" = compressed, "p:" = plain
+function encodePayload(obj) {
+  const json = JSON.stringify(obj);
+  if (typeof pako !== 'undefined') {
+    try {
+      const bytes = new TextEncoder().encode(json);
+      const compressed = pako.deflate(bytes, { level: 9 });
+      // Uint8Array -> binary string -> base64
+      const binStr = Array.from(compressed, b => String.fromCharCode(b)).join('');
+      const b64 = btoa(binStr).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+      return 'z:' + b64; // "z" prefix = compressed
+    } catch(e) {
+      console.warn('pako compression failed, falling back to plain', e);
+    }
+  }
+  // Fallback: plain base64url (no compression)
+  const b64 = btoa(unescape(encodeURIComponent(json))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  return 'p:' + b64; // "p" prefix = plain
+}
+
+function populateSelects(headers) {
+  [colLat, colLng, colLabel].forEach(sel => {
+    const first = sel.options[0]; sel.innerHTML=''; sel.appendChild(first);
+    headers.forEach(h => { const o=document.createElement('option'); o.value=h; o.textContent=h; sel.appendChild(o); });
+  });
+  const guess = kw => headers.find(h => kw.some(k => h.toLowerCase().includes(k))) || '';
+  colLat.value   = guess(['lat','latitude','y']);
+  colLng.value   = guess(['lng','lon','long','longitude','x']);
+  colLabel.value = guess(['name','title','label','place','city','location','address','description']);
+  checkReady();
+}
+
+const checkReady = () => { generateBtn.disabled = !(parsedData && colLat.value && colLng.value); };
+[colLat, colLng, colLabel].forEach(s => s.addEventListener('change', checkReady));
+
+function parseCSV(text) {
+  const lines = text.trim().split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) return null;
+  function splitLine(line) {
+    const r=[]; let cur='', inQ=false;
+    for (const c of line) {
+      if (c==='"') inQ=!inQ;
+      else if (c===',' && !inQ) { r.push(cur.trim()); cur=''; }
+      else cur+=c;
+    }
+    r.push(cur.trim()); return r;
+  }
+  const headers = splitLine(lines[0]).map(h => h.replace(/^"|"$/g,'').trim());
+  const rows = lines.slice(1).map(l => {
+    const vals = splitLine(l); const row={};
+    headers.forEach((h,i) => { row[h] = (vals[i]||'').replace(/^"|"$/g,'').trim(); });
+    return row;
+  });
+  return { headers, rows };
+}
+
+function loadFile(file) {
+  if (!file || !file.name.toLowerCase().endsWith('.csv')) { showMsg('Please upload a valid .csv file.','error'); return; }
+  hideMsg();
+  const reader = new FileReader();
+  reader.onload = e => {
+    const result = parseCSV(e.target.result);
+    if (!result || !result.headers.length) { showMsg('Could not parse CSV. Make sure the file has headers and data rows.','error'); return; }
+    parsedData = result;
+    fileName.textContent = file.name;
+    fileSize.textContent = fmtBytes(file.size) + ' · ' + result.rows.length + ' rows · ' + result.headers.length + ' cols';
+    filePreview.classList.add('visible');
+    dropZone.style.display = 'none';
+    fieldGroup.style.display = 'block';
+    actionDivider.style.display = 'block';
+    boardTitle.value = file.name.replace(/\.csv$/i,'').replace(/[-_]/g,' ');
+    populateSelects(result.headers);
+    resultBox.classList.remove('visible');
+  };
+  reader.onerror = () => showMsg('Failed to read file.','error');
+  reader.readAsText(file);
+}
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag-over'); loadFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', () => loadFile(fileInput.files[0]));
+
+fileRemove.addEventListener('click', () => {
+  parsedData=null; fileInput.value='';
+  filePreview.classList.remove('visible');
+  dropZone.style.display='';
+  fieldGroup.style.display='none';
+  actionDivider.style.display='none';
+  generateBtn.disabled=true;
+  resultBox.classList.remove('visible');
+  hideMsg();
+});
+
+generateBtn.addEventListener('click', () => {
+  if (!parsedData || !colLat.value || !colLng.value) return;
+
+  const filtered = parsedData.rows.filter(r => {
+    const lat=parseFloat(r[colLat.value]), lng=parseFloat(r[colLng.value]);
+    return !isNaN(lat) && !isNaN(lng) && lat>=-90 && lat<=90 && lng>=-180 && lng<=180;
+  });
+
+  if (!filtered.length) { showMsg('No valid lat/lng values found in the selected columns.','error'); return; }
+  hideMsg();
+
+  const payload = {
+    title: boardTitle.value.trim() || 'Data Board',
+    latCol: colLat.value, lngCol: colLng.value,
+    labelCol: colLabel.value || null,
+    headers: parsedData.headers,
+    rows: filtered
+  };
+
+  let encoded;
+  try { encoded = encodePayload(payload); }
+  catch(e) { showMsg('Encoding failed: ' + e.message,'error'); return; }
+
+  if (encoded.length > 1900000) {
+    showMsg('Dataset too large even after compression. Try fewer rows or columns (aim for under 2000 rows).','error');
+    return;
+  }
+
+  const base = window.location.href.replace(/\/(index\.html)?$/, '');
+  const url = base + '/board.html#' + encoded;
+
+  resultUrl.textContent = url;
+  openBtn.onclick = () => window.open(url, '_blank');
+  resultBox.classList.add('visible');
+
+  const rawKB  = Math.round(JSON.stringify(payload).length / 1024);
+  const compKB = Math.round(encoded.length * 0.75 / 1024);
+  const skipped = parsedData.rows.length - filtered.length;
+  const isCompressed = encoded.startsWith('z:');
+
+  statsRow.innerHTML =
+    '<span>' + filtered.length + ' rows mapped' + (skipped ? ' · ' + skipped + ' skipped' : '') + '</span>' +
+    (isCompressed ? '<span class="badge">' + Math.round(rawKB/(compKB||1)) + '× compressed · ' + compKB + ' KB</span>' : '<span class="badge">plain · ' + compKB + ' KB</span>');
+});
+
+copyBtn.addEventListener('click', () => {
+  navigator.clipboard.writeText(resultUrl.textContent).then(() => {
+    copyBtn.textContent='Copied!';
+    setTimeout(() => copyBtn.textContent='Copy', 1800);
+  });
+});
+</script>
+</body>
+</html>
