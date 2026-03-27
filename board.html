@@ -15,22 +15,31 @@
     --accent-bg: #1a1916; --accent-text: #f8f7f4;
     --radius: 10px; --radius-sm: 6px;
     --header-h: 56px; --tabs-h: 44px; --toolbar-h: 46px;
+
+    --c-approve: #2d6a4f; --c-approve-bg: #eaf4ef; --c-approve-border: #b7dfcc;
+    --c-reject: #9b2c2c;  --c-reject-bg: #fdf0f0;  --c-reject-border: #f5c6c6;
+    --c-flag: #92400e;    --c-flag-bg: #fef3e2;    --c-flag-border: #f9d8a0;
+    --c-comment: #1e3a8a; --c-comment-bg: #eff6ff;  --c-comment-border: #bfdbfe;
   }
   html, body { height: 100%; overflow: hidden; }
   body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text-primary); display: flex; flex-direction: column; }
 
+  /* ── topbar ── */
   .topbar { height: var(--header-h); background: var(--surface); border-bottom: 0.5px solid var(--border); display: flex; align-items: center; padding: 0 20px; gap: 14px; flex-shrink: 0; }
   .board-title { font-size: 15px; font-weight: 500; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .row-count { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-hint); white-space: nowrap; }
-  .back-link { font-size: 13px; color: var(--text-secondary); text-decoration: none; white-space: nowrap; padding: 5px 10px; border: 0.5px solid var(--border); border-radius: var(--radius-sm); transition: border-color 0.12s, color 0.12s; }
-  .back-link:hover { border-color: var(--border-strong); color: var(--text-primary); }
+  .gh-status { font-size: 12px; color: var(--text-hint); font-family: 'DM Mono', monospace; white-space: nowrap; }
+  .gh-status.ok { color: var(--c-approve); }
+  .gh-status.err { color: var(--c-reject); }
 
+  /* ── tabs ── */
   .tabs { height: var(--tabs-h); background: var(--surface); border-bottom: 0.5px solid var(--border); display: flex; align-items: flex-end; padding: 0 20px; gap: 2px; flex-shrink: 0; }
   .tab { padding: 8px 14px 9px; font-size: 13px; cursor: pointer; border: none; background: none; font-family: 'DM Sans', sans-serif; color: var(--text-secondary); border-bottom: 2px solid transparent; transition: color 0.12s, border-color 0.12s; display: flex; align-items: center; gap: 6px; }
   .tab svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
   .tab:hover { color: var(--text-primary); }
   .tab.active { color: var(--text-primary); font-weight: 500; border-bottom-color: var(--text-primary); }
 
+  /* ── toolbar ── */
   .toolbar { height: var(--toolbar-h); padding: 0 20px; background: var(--bg); border-bottom: 0.5px solid var(--border); display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
   .search-wrap { position: relative; flex: 1; max-width: 340px; }
   .search-wrap svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; stroke: var(--text-hint); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
@@ -39,24 +48,41 @@
   .search-input::placeholder { color: var(--text-hint); }
   .result-count { font-size: 12px; color: var(--text-hint); font-family: 'DM Mono', monospace; white-space: nowrap; }
 
+  /* ── views ── */
   .views { flex: 1; overflow: hidden; position: relative; }
   .view { position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity 0.15s; }
   .view.active { opacity: 1; pointer-events: auto; }
 
+  /* ── table ── */
   #tableView { overflow-y: auto; overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   thead th { position: sticky; top: 0; z-index: 2; background: var(--surface); border-bottom: 0.5px solid var(--border); text-align: left; padding: 9px 14px; font-size: 11px; font-weight: 500; font-family: 'DM Mono', monospace; color: var(--text-hint); text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap; cursor: pointer; user-select: none; }
   thead th:hover { color: var(--text-secondary); }
   thead th.sort-asc::after { content: ' ↑'; }
   thead th.sort-desc::after { content: ' ↓'; }
+  thead th.th-status { cursor: default; }
+  thead th.th-status:hover { color: var(--text-hint); }
   tbody tr { border-bottom: 0.5px solid var(--border); cursor: pointer; transition: background 0.1s; }
   tbody tr:hover { background: var(--bg); }
   tbody tr.highlighted { background: #fdf9ee; }
   tbody tr.highlighted:hover { background: #faf4e0; }
   tbody td { padding: 9px 14px; color: var(--text-primary); white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
   tbody td.coord { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text-hint); }
+  tbody td.td-status { white-space: nowrap; }
   .no-results { padding: 48px 24px; text-align: center; font-size: 14px; color: var(--text-hint); }
 
+  /* ── status badges ── */
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500;
+    border: 0.5px solid transparent; white-space: nowrap;
+  }
+  .badge-approve { background: var(--c-approve-bg); color: var(--c-approve); border-color: var(--c-approve-border); }
+  .badge-reject  { background: var(--c-reject-bg);  color: var(--c-reject);  border-color: var(--c-reject-border); }
+  .badge-flag    { background: var(--c-flag-bg);    color: var(--c-flag);    border-color: var(--c-flag-border); }
+  .badge-comment { background: var(--c-comment-bg); color: var(--c-comment); border-color: var(--c-comment-border); }
+
+  /* ── map ── */
   #mapView { overflow: hidden; }
   #map { width: 100%; height: 100%; }
   .leaflet-popup-content-wrapper { border-radius: var(--radius-sm) !important; box-shadow: 0 2px 12px rgba(0,0,0,0.1) !important; border: 0.5px solid var(--border); font-family: 'DM Sans', sans-serif; font-size: 13px; }
@@ -65,112 +91,127 @@
   .popup-fields { font-size: 12px; line-height: 1.8; color: var(--text-secondary); }
   .popup-fields strong { color: var(--text-primary); font-weight: 500; }
 
-  .detail-panel { position: absolute; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 0.5px solid var(--border); padding: 16px 20px; transform: translateY(100%); transition: transform 0.2s cubic-bezier(0.22,1,0.36,1); z-index: 10; max-height: 44%; overflow-y: auto; }
+  /* ── detail panel ── */
+  .detail-panel { position: absolute; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 0.5px solid var(--border); transform: translateY(100%); transition: transform 0.2s cubic-bezier(0.22,1,0.36,1); z-index: 10; max-height: 70%; overflow-y: auto; }
   .detail-panel.open { transform: translateY(0); }
-  .detail-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+
+  .detail-header { display: flex; align-items: center; gap: 12px; padding: 16px 20px 12px; border-bottom: 0.5px solid var(--border); position: sticky; top: 0; background: var(--surface); z-index: 1; }
   .detail-title { font-weight: 500; font-size: 14px; flex: 1; }
   .detail-close { background: none; border: none; cursor: pointer; color: var(--text-hint); font-size: 18px; line-height: 1; padding: 2px 6px; border-radius: 4px; }
   .detail-close:hover { color: var(--text-primary); background: var(--bg); }
+
+  .detail-body { padding: 16px 20px; display: flex; flex-direction: column; gap: 20px; }
+
   .detail-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
   .detail-cell { background: var(--bg); border-radius: var(--radius-sm); padding: 8px 10px; }
   .detail-key { font-size: 10px; font-weight: 500; color: var(--text-hint); text-transform: uppercase; letter-spacing: 0.06em; font-family: 'DM Mono', monospace; margin-bottom: 3px; }
   .detail-val { font-size: 13px; color: var(--text-primary); word-break: break-word; }
 
+  /* ── review section ── */
+  .review-section { border-top: 0.5px solid var(--border); padding-top: 16px; }
+  .review-label { font-size: 11px; font-weight: 500; color: var(--text-hint); text-transform: uppercase; letter-spacing: 0.08em; font-family: 'DM Mono', monospace; margin-bottom: 12px; }
+
+  .review-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .action-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 7px 14px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500;
+    font-family: 'DM Sans', sans-serif; cursor: pointer; border: 0.5px solid transparent;
+    transition: opacity 0.12s, transform 0.1s;
+  }
+  .action-btn:active { transform: scale(0.97); }
+  .action-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .action-btn.approve { background: var(--c-approve-bg); color: var(--c-approve); border-color: var(--c-approve-border); }
+  .action-btn.reject  { background: var(--c-reject-bg);  color: var(--c-reject);  border-color: var(--c-reject-border); }
+  .action-btn.flag    { background: var(--c-flag-bg);    color: var(--c-flag);    border-color: var(--c-flag-border); }
+  .action-btn.comment { background: var(--c-comment-bg); color: var(--c-comment); border-color: var(--c-comment-border); }
+  .action-btn:hover:not(:disabled) { opacity: 0.8; }
+
+  .comment-row { display: flex; gap: 8px; }
+  .comment-input { flex: 1; padding: 8px 12px; font-size: 13px; font-family: 'DM Sans', sans-serif; background: var(--surface); border: 0.5px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-primary); resize: none; min-height: 64px; transition: border-color 0.15s; }
+  .comment-input:focus { outline: none; border-color: var(--accent-bg); }
+  .comment-input::placeholder { color: var(--text-hint); }
+  .comment-input:disabled { opacity: 0.4; }
+
+  /* existing issues on this row */
+  .issues-list { display: flex; flex-direction: column; gap: 8px; }
+  .issue-item { padding: 10px 12px; border-radius: var(--radius-sm); border: 0.5px solid var(--border); background: var(--bg); }
+  .issue-top { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .issue-body { font-size: 12px; color: var(--text-secondary); line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+  .issue-meta { font-size: 11px; color: var(--text-hint); font-family: 'DM Mono', monospace; }
+  .issue-link { font-size: 11px; color: var(--text-hint); text-decoration: none; margin-left: auto; }
+  .issue-link:hover { color: var(--text-primary); }
+
+  .review-feedback { margin-top: 10px; font-size: 13px; padding: 8px 12px; border-radius: var(--radius-sm); display: none; }
+  .review-feedback.visible { display: block; }
+  .review-feedback.ok  { background: var(--c-approve-bg); color: var(--c-approve); border: 0.5px solid var(--c-approve-border); }
+  .review-feedback.err { background: var(--c-reject-bg);  color: var(--c-reject);  border: 0.5px solid var(--c-reject-border); }
+
+  /* ── error state ── */
   .error-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 12px; text-align: center; padding: 40px; }
   .error-state h2 { font-size: 18px; font-weight: 400; }
   .error-state p { font-size: 14px; color: var(--text-secondary); max-width: 380px; line-height: 1.6; }
   .error-state code { display: inline-block; margin-top: 8px; padding: 8px 12px; background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-sm); font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text-secondary); text-align: left; max-width: 100%; word-break: break-all; }
-  .error-state a { margin-top: 8px; font-size: 13px; padding: 8px 18px; background: var(--accent-bg); color: var(--accent-text); border-radius: var(--radius-sm); text-decoration: none; }
-  .error-state a:hover { opacity: 0.85; }
 
-  @media (max-width: 600px) { .topbar, .tabs, .toolbar { padding-left: 12px; padding-right: 12px; } tbody td, thead th { padding-left: 10px; padding-right: 10px; } }
+  @media (max-width: 600px) {
+    .topbar, .tabs, .toolbar { padding-left: 12px; padding-right: 12px; }
+    tbody td, thead th { padding-left: 10px; padding-right: 10px; }
+    .review-actions { gap: 6px; }
+    .action-btn { padding: 6px 10px; font-size: 12px; }
+  }
 </style>
 </head>
 <body>
 
+<!-- Load config first (user fills in owner/repo/token) -->
+<script src="config.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 
 <script>
 (function () {
 
+  // ── config guard ──────────────────────────────────────────────────────
+  var cfg = (typeof BOARD_CONFIG !== 'undefined') ? BOARD_CONFIG : {};
+  var GH_OWNER = cfg.owner || '';
+  var GH_REPO  = cfg.repo  || '';
+  var GH_TOKEN = cfg.token || '';
+  var GH_READY = GH_OWNER && GH_REPO && GH_TOKEN && GH_TOKEN.indexOf('ghp_xxx') === -1;
+
   // ── utilities ─────────────────────────────────────────────────────────
   function esc(s) {
     return String(s == null ? '' : s)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
-
-  function showError(title, detail, technicalMsg) {
+  function showError(title, detail, tech) {
     document.title = 'CSV Board';
-    var techHtml = technicalMsg
-      ? '<code>' + esc(technicalMsg) + '</code>'
-      : '';
     document.body.innerHTML =
-      '<div class="error-state">' +
-        '<h2>' + esc(title) + '</h2>' +
-        '<p>' + esc(detail) + '</p>' +
-        techHtml +
-        '<a href="index.html">← Upload a new CSV</a>' +
-      '</div>';
+      '<div class="error-state"><h2>' + esc(title) + '</h2><p>' + esc(detail) + '</p>' +
+      (tech ? '<code>' + esc(tech) + '</code>' : '') + '</div>';
   }
 
-  // ── read & decode hash ────────────────────────────────────────────────
+  // ── decode hash ───────────────────────────────────────────────────────
   var rawHash = window.location.hash.slice(1);
+  if (!rawHash) { showError('No board data found.', 'Upload a CSV to generate a valid board link.'); return; }
 
-  if (!rawHash) {
-    showError(
-      'No board data found.',
-      'This link does not contain any board data. Upload a CSV on the index page to generate a valid link.'
-    );
-    return;
-  }
-
-  /**
-   * Decode the URL hash into a JS object.
-   * Supports three formats (all produce base64url with no prefix):
-   *   1. pako-deflated  -> try pako.inflate first
-   *   2. plain base64url -> fallback via decodeURIComponent(escape(atob()))
-   */
   function decodeHash(hash) {
-    // Restore standard base64 padding & characters
-    var b64 = hash.replace(/-/g, '+').replace(/_/g, '/');
-    // Add padding if needed
+    var b64 = hash.replace(/-/g,'+').replace(/_/g,'/');
     var pad = b64.length % 4;
-    if (pad === 2) b64 += '==';
-    else if (pad === 3) b64 += '=';
-
-    var binStr = atob(b64); // throws if not valid base64
-
-    // Try pako inflate (compressed format)
+    if (pad === 2) b64 += '=='; else if (pad === 3) b64 += '=';
+    var binStr = atob(b64);
     if (typeof pako !== 'undefined') {
       try {
         var bytes = new Uint8Array(binStr.length);
         for (var i = 0; i < binStr.length; i++) bytes[i] = binStr.charCodeAt(i);
-        var inflated = pako.inflate(bytes);
-        return JSON.parse(new TextDecoder().decode(inflated));
-      } catch (_) {
-        // Not compressed — fall through to plain decode
-      }
+        return JSON.parse(new TextDecoder().decode(pako.inflate(bytes)));
+      } catch (_) {}
     }
-
-    // Plain UTF-8 base64 (unescape+encodeURIComponent encoded)
     return JSON.parse(decodeURIComponent(escape(binStr)));
   }
 
   var payload;
-  try {
-    payload = decodeHash(rawHash);
-  } catch (e) {
-    showError(
-      'Could not read board data.',
-      'The link may be from an older version or was copied incorrectly. Try generating a new link.',
-      e.message
-    );
-    return;
-  }
+  try { payload = decodeHash(rawHash); }
+  catch (e) { showError('Could not read board data.', 'The link may be corrupted. Try generating a new one.', e.message); return; }
 
-  // ── validate payload ──────────────────────────────────────────────────
   var title    = payload.title    || 'Data Board';
   var latCol   = payload.latCol;
   var lngCol   = payload.lngCol;
@@ -178,20 +219,105 @@
   var headers  = payload.headers;
   var rows     = payload.rows;
 
-  if (!Array.isArray(rows) || rows.length === 0) {
-    showError('Empty board.', 'No data rows were found in this board link.');
-    return;
-  }
-  if (!Array.isArray(headers) || headers.length === 0) {
-    showError('Invalid board data.', 'The board is missing column header information.');
-    return;
-  }
-  if (!latCol || !lngCol) {
-    showError('Invalid board data.', 'Latitude or longitude column information is missing.');
-    return;
-  }
+  if (!Array.isArray(rows) || !rows.length)    { showError('Empty board.', 'No data rows found.'); return; }
+  if (!Array.isArray(headers) || !headers.length) { showError('Invalid board.', 'Missing column headers.'); return; }
 
   document.title = title;
+
+  // ── GitHub Issues API ─────────────────────────────────────────────────
+  // issueCache: rowKey -> array of issue objects
+  var issueCache = {};
+  var LABEL_MAP = {
+    approve: 'csv-board:approve',
+    reject:  'csv-board:reject',
+    flag:    'csv-board:flag',
+    comment: 'csv-board:comment'
+  };
+  var LABELS_ALL = Object.values(LABEL_MAP).join(',');
+
+  function rowKey(row) {
+    // Stable key: lat+lng rounded to 5dp + label
+    var lat = parseFloat(row[latCol]).toFixed(5);
+    var lng = parseFloat(row[lngCol]).toFixed(5);
+    var lbl = labelCol ? (row[labelCol] || '') : '';
+    return lat + '|' + lng + '|' + lbl;
+  }
+
+  function ghHeaders() {
+    return {
+      'Authorization': 'Bearer ' + GH_TOKEN,
+      'Accept': 'application/vnd.github+json',
+      'Content-Type': 'application/json',
+      'X-GitHub-Api-Version': '2022-11-28'
+    };
+  }
+
+  // Fetch all issues with our labels (paginated up to 100)
+  function fetchAllIssues(cb) {
+    if (!GH_READY) { cb(null); return; }
+    var url = 'https://api.github.com/repos/' + GH_OWNER + '/' + GH_REPO +
+              '/issues?state=open&labels=csv-board&per_page=100';
+    fetch(url, { headers: ghHeaders() })
+      .then(function(r) { return r.json(); })
+      .then(function(issues) {
+        issueCache = {};
+        if (!Array.isArray(issues)) { cb(null); return; }
+        issues.forEach(function(issue) {
+          // Extract row key from issue body metadata
+          var match = issue.body && issue.body.match(/<!--rowkey:(.+?)-->/);
+          if (match) {
+            var k = match[1];
+            if (!issueCache[k]) issueCache[k] = [];
+            issueCache[k].push(issue);
+          }
+        });
+        cb(issueCache);
+      })
+      .catch(function() { cb(null); });
+  }
+
+  function createIssue(row, action, commentText, onDone) {
+    if (!GH_READY) { onDone(false, 'GitHub not configured. Fill in config.js.'); return; }
+    var key  = rowKey(row);
+    var lbl  = getLabel(row);
+    var actionLabel = LABEL_MAP[action] || action;
+
+    // Build a readable body with all row data
+    var fieldLines = headers.map(function(h) {
+      return '| ' + h + ' | ' + (row[h] || '—') + ' |';
+    }).join('\n');
+
+    var body =
+      '<!--rowkey:' + key + '-->\n' +
+      (commentText ? '**Comment:** ' + commentText + '\n\n' : '') +
+      '### Row data\n\n' +
+      '| Field | Value |\n|---|---|\n' + fieldLines + '\n\n' +
+      '---\n*Submitted via CSV Board*';
+
+    var issueTitle = '[' + action.toUpperCase() + '] ' + lbl;
+
+    fetch('https://api.github.com/repos/' + GH_OWNER + '/' + GH_REPO + '/issues', {
+      method: 'POST',
+      headers: ghHeaders(),
+      body: JSON.stringify({
+        title: issueTitle,
+        body: body,
+        labels: ['csv-board', actionLabel]
+      })
+    })
+    .then(function(r) {
+      if (r.status === 201) {
+        return r.json().then(function(issue) {
+          // Update local cache immediately
+          if (!issueCache[key]) issueCache[key] = [];
+          issueCache[key].push(issue);
+          onDone(true, null, issue);
+        });
+      }
+      return r.json().then(function(e) { onDone(false, e.message || 'GitHub API error'); });
+    })
+    .catch(function(e) { onDone(false, e.message); });
+  }
 
   // ── state ─────────────────────────────────────────────────────────────
   var sortCol = null, sortDir = 1, filterText = '', selectedRow = null;
@@ -210,18 +336,31 @@
   function getSorted(arr) {
     if (!sortCol) return arr;
     return arr.slice().sort(function(a, b) {
-      var va = a[sortCol] || '', vb = b[sortCol] || '';
+      var va = a[sortCol]||'', vb = b[sortCol]||'';
       var na = parseFloat(va), nb = parseFloat(vb);
-      if (!isNaN(na) && !isNaN(nb)) return (na - nb) * sortDir;
-      return va.localeCompare(vb) * sortDir;
+      if (!isNaN(na) && !isNaN(nb)) return (na-nb)*sortDir;
+      return va.localeCompare(vb)*sortDir;
     });
   }
+  function rowStatusBadge(row) {
+    var k = rowKey(row);
+    var issues = issueCache[k];
+    if (!issues || !issues.length) return '';
+    // Show the most recent action
+    var latest = issues[issues.length - 1];
+    var labels = (latest.labels || []).map(function(l) { return l.name; });
+    if (labels.indexOf('csv-board:approve') !== -1) return '<span class="badge badge-approve">✓ Approved</span>';
+    if (labels.indexOf('csv-board:reject')  !== -1) return '<span class="badge badge-reject">✕ Rejected</span>';
+    if (labels.indexOf('csv-board:flag')    !== -1) return '<span class="badge badge-flag">⚑ Flagged</span>';
+    if (labels.indexOf('csv-board:comment') !== -1) return '<span class="badge badge-comment">✎ Comment</span>';
+    return '';
+  }
 
-  // ── build page chrome ─────────────────────────────────────────────────
+  // ── build chrome ──────────────────────────────────────────────────────
   document.body.innerHTML =
     '<div class="topbar">' +
-      '<a class="back-link" href="index.html">← Upload</a>' +
       '<span class="board-title">' + esc(title) + '</span>' +
+      '<span class="gh-status" id="ghStatus">' + (GH_READY ? 'loading issues…' : 'GitHub not configured') + '</span>' +
       '<span class="row-count">' + rows.length + ' rows</span>' +
     '</div>' +
     '<div class="tabs">' +
@@ -248,7 +387,23 @@
         '<span class="detail-title" id="detailTitle"></span>' +
         '<button class="detail-close" onclick="closeDetail()">&#x2715;</button>' +
       '</div>' +
-      '<div class="detail-grid" id="detailGrid"></div>' +
+      '<div class="detail-body">' +
+        '<div class="detail-grid" id="detailGrid"></div>' +
+        '<div class="review-section" id="reviewSection">' +
+          '<div class="review-label">Review this row</div>' +
+          '<div class="review-actions">' +
+            '<button class="action-btn approve" onclick="submitAction(\'approve\')" id="btnApprove">✓ Approve</button>' +
+            '<button class="action-btn reject"  onclick="submitAction(\'reject\')"  id="btnReject">✕ Reject</button>' +
+            '<button class="action-btn flag"    onclick="submitAction(\'flag\')"    id="btnFlag">⚑ Flag for review</button>' +
+            '<button class="action-btn comment" onclick="submitAction(\'comment\')" id="btnComment">✎ Comment</button>' +
+          '</div>' +
+          '<div class="comment-row">' +
+            '<textarea class="comment-input" id="commentInput" placeholder="Add a comment (optional for approve/reject/flag, required for comment action)\u2026" rows="3"></textarea>' +
+          '</div>' +
+          '<div class="review-feedback" id="reviewFeedback"></div>' +
+          '<div id="issuesList" style="margin-top:14px;"></div>' +
+        '</div>' +
+      '</div>' +
     '</div>';
 
   // ── table render ──────────────────────────────────────────────────────
@@ -257,28 +412,23 @@
     var el = document.getElementById('tableView');
     var rc = document.getElementById('resultCount');
     if (rc) rc.textContent = filterText ? (filtered.length + ' of ' + rows.length) : '';
+    if (!filtered.length) { el.innerHTML = '<div class="no-results">No rows match your search.</div>'; return; }
 
-    if (!filtered.length) {
-      el.innerHTML = '<div class="no-results">No rows match your search.</div>';
-      return;
-    }
-
-    var coordSet = {};
-    coordSet[latCol] = true; coordSet[lngCol] = true;
-
+    var coordSet = {}; coordSet[latCol] = true; coordSet[lngCol] = true;
     var html = '<table><thead><tr>';
+    if (GH_READY) html += '<th class="th-status">Status</th>';
     headers.forEach(function(h) {
-      var cls = sortCol === h ? (sortDir === 1 ? 'sort-asc' : 'sort-desc') : '';
+      var cls = sortCol === h ? (sortDir===1?'sort-asc':'sort-desc') : '';
       html += '<th class="' + cls + '" onclick="sortBy(\'' + esc(h) + '\')">' + esc(h) + '</th>';
     });
     html += '</tr></thead><tbody>';
-
     filtered.forEach(function(row) {
       var idx = rows.indexOf(row);
-      html += '<tr class="' + (selectedRow === row ? 'highlighted' : '') + '" onclick="selectRow(' + idx + ')">';
+      html += '<tr class="' + (selectedRow===row?'highlighted':'') + '" onclick="selectRow(' + idx + ')">';
+      if (GH_READY) html += '<td class="td-status">' + rowStatusBadge(row) + '</td>';
       headers.forEach(function(h) {
         var val = row[h] != null ? row[h] : '';
-        html += '<td class="' + (coordSet[h] ? 'coord' : '') + '" title="' + esc(val) + '">' + esc(val || '—') + '</td>';
+        html += '<td class="' + (coordSet[h]?'coord':'') + '" title="' + esc(val) + '">' + esc(val||'—') + '</td>';
       });
       html += '</tr>';
     });
@@ -286,112 +436,188 @@
     el.innerHTML = html;
   }
 
-  // ── map render ────────────────────────────────────────────────────────
+  // ── detail panel ──────────────────────────────────────────────────────
+  function renderDetailIssues(row) {
+    var k = rowKey(row);
+    var issues = issueCache[k] || [];
+    var el = document.getElementById('issuesList');
+    if (!el) return;
+    if (!GH_READY) { el.innerHTML = '<p style="font-size:12px;color:var(--text-hint);">Configure config.js to enable GitHub Issues integration.</p>'; return; }
+    if (!issues.length) { el.innerHTML = ''; return; }
+
+    var html = '<div class="review-label" style="margin-top:4px;">Previous activity (' + issues.length + ')</div><div class="issues-list">';
+    issues.forEach(function(issue) {
+      var labels = (issue.labels||[]).map(function(l){return l.name;});
+      var badgeCls = 'badge-comment';
+      var badgeTxt = '✎ Comment';
+      if (labels.indexOf('csv-board:approve')!==-1) { badgeCls='badge-approve'; badgeTxt='✓ Approved'; }
+      else if (labels.indexOf('csv-board:reject')!==-1) { badgeCls='badge-reject'; badgeTxt='✕ Rejected'; }
+      else if (labels.indexOf('csv-board:flag')!==-1) { badgeCls='badge-flag'; badgeTxt='⚑ Flagged'; }
+
+      // Extract user comment from body (before the row data table)
+      var commentMatch = issue.body && issue.body.match(/\*\*Comment:\*\* (.+?)(?:\n|$)/);
+      var commentText = commentMatch ? commentMatch[1] : '';
+      var date = issue.created_at ? new Date(issue.created_at).toLocaleDateString() : '';
+
+      html +=
+        '<div class="issue-item">' +
+          '<div class="issue-top">' +
+            '<span class="badge ' + badgeCls + '">' + badgeTxt + '</span>' +
+            '<span class="issue-meta">' + esc(issue.user && issue.user.login ? '@'+issue.user.login : '') + (date?' · '+date:'') + '</span>' +
+            '<a class="issue-link" href="' + esc(issue.html_url) + '" target="_blank" rel="noopener">#' + issue.number + ' ↗</a>' +
+          '</div>' +
+          (commentText ? '<div class="issue-body">' + esc(commentText) + '</div>' : '') +
+        '</div>';
+    });
+    html += '</div>';
+    el.innerHTML = html;
+  }
+
+  // ── map ───────────────────────────────────────────────────────────────
   function initMap() {
     if (leafletMap) return;
     if (typeof L === 'undefined') {
       var mv = document.getElementById('mapView');
-      if (mv) mv.innerHTML = '<div class="no-results">Map unavailable — Leaflet library failed to load.</div>';
+      if (mv) mv.innerHTML = '<div class="no-results">Map unavailable — Leaflet failed to load.</div>';
       return;
     }
     leafletMap = L.map('map', { zoomControl: true });
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      attribution: '\u00a9 OpenStreetMap \u00a9 CartoDB',
-      subdomains: 'abcd',
-      maxZoom: 19
+      attribution: '\u00a9 OpenStreetMap \u00a9 CartoDB', subdomains: 'abcd', maxZoom: 19
     }).addTo(leafletMap);
     markerLayer = L.featureGroup().addTo(leafletMap);
     renderMarkers();
   }
 
+  function markerColor(row) {
+    var k = rowKey(row);
+    var issues = issueCache[k];
+    if (!issues || !issues.length) return '#1a1916';
+    var latest = issues[issues.length-1];
+    var labels = (latest.labels||[]).map(function(l){return l.name;});
+    if (labels.indexOf('csv-board:approve')!==-1) return '#2d6a4f';
+    if (labels.indexOf('csv-board:reject')!==-1)  return '#9b2c2c';
+    if (labels.indexOf('csv-board:flag')!==-1)    return '#92400e';
+    return '#1e3a8a';
+  }
+
   function renderMarkers() {
     if (!leafletMap || !markerLayer) return;
     markerLayer.clearLayers();
-
     var filtered = getSorted(getFiltered());
-    var icon = L.divIcon({
-      className: '',
-      html: '<div style="width:10px;height:10px;background:#1a1916;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.28);"></div>',
-      iconSize: [10, 10],
-      iconAnchor: [5, 5]
-    });
-
     filtered.forEach(function(row) {
-      var lat = parseFloat(row[latCol]);
-      var lng = parseFloat(row[lngCol]);
-      if (isNaN(lat) || isNaN(lng)) return;
-
-      var label = getLabel(row);
-      var extraHtml = headers
-        .filter(function(h) { return h !== latCol && h !== lngCol; })
-        .slice(0, 5)
-        .map(function(h) {
-          return row[h] ? ('<span><strong>' + esc(h) + ':</strong> ' + esc(row[h]) + '</span>') : '';
-        })
-        .filter(Boolean)
-        .join('<br>');
-
-      var popup =
-        '<div class="popup-title">' + esc(label) + '</div>' +
-        '<div class="popup-coords">' + lat.toFixed(5) + ', ' + lng.toFixed(5) + '</div>' +
-        (extraHtml ? '<div class="popup-fields">' + extraHtml + '</div>' : '');
-
-      L.marker([lat, lng], { icon: icon }).addTo(markerLayer).bindPopup(popup);
+      var lat = parseFloat(row[latCol]), lng = parseFloat(row[lngCol]);
+      if (isNaN(lat)||isNaN(lng)) return;
+      var color = markerColor(row);
+      var icon = L.divIcon({
+        className: '',
+        html: '<div style="width:10px;height:10px;background:'+color+';border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.28);"></div>',
+        iconSize: [10,10], iconAnchor: [5,5]
+      });
+      var lbl = getLabel(row);
+      var extraHtml = headers.filter(function(h){return h!==latCol&&h!==lngCol;}).slice(0,5)
+        .map(function(h){return row[h]?'<span><strong>'+esc(h)+':</strong> '+esc(row[h])+'</span>':'';}).filter(Boolean).join('<br>');
+      var popup = '<div class="popup-title">'+esc(lbl)+'</div>' +
+        '<div class="popup-coords">'+lat.toFixed(5)+', '+lng.toFixed(5)+'</div>' +
+        (extraHtml?'<div class="popup-fields">'+extraHtml+'</div>':'');
+      L.marker([lat,lng],{icon:icon}).addTo(markerLayer).bindPopup(popup);
     });
-
-    if (markerLayer.getLayers().length > 0) {
-      try { leafletMap.fitBounds(markerLayer.getBounds(), { padding: [40, 40] }); } catch (_) {}
+    if (markerLayer.getLayers().length>0) {
+      try { leafletMap.fitBounds(markerLayer.getBounds(),{padding:[40,40]}); } catch(_) {}
     }
   }
 
-  // ── global event handlers ─────────────────────────────────────────────
+  // ── global handlers ───────────────────────────────────────────────────
   window.switchTab = function(tab) {
-    var isTable = (tab === 'table');
+    var isTable = tab==='table';
     document.getElementById('tabTable').classList.toggle('active', isTable);
     document.getElementById('tabMap').classList.toggle('active', !isTable);
     document.getElementById('tableView').classList.toggle('active', isTable);
     document.getElementById('mapView').classList.toggle('active', !isTable);
-    if (!isTable) {
-      setTimeout(function() {
-        initMap();
-        if (leafletMap) leafletMap.invalidateSize();
-      }, 60);
-    }
+    if (!isTable) { setTimeout(function(){ initMap(); if(leafletMap) leafletMap.invalidateSize(); }, 60); }
   };
 
-  window.onSearch = function(val) {
-    filterText = val;
-    renderTable();
-    if (leafletMap) renderMarkers();
-  };
+  window.onSearch = function(val) { filterText=val; renderTable(); if(leafletMap) renderMarkers(); };
 
   window.sortBy = function(col) {
-    sortDir = (sortCol === col) ? sortDir * -1 : 1;
-    sortCol = col;
-    renderTable();
+    sortDir = sortCol===col ? sortDir*-1 : 1; sortCol=col; renderTable();
   };
 
   window.selectRow = function(idx) {
     selectedRow = rows[idx];
     document.getElementById('detailTitle').textContent = getLabel(selectedRow);
     document.getElementById('detailGrid').innerHTML = headers.map(function(h) {
-      return '<div class="detail-cell">' +
-        '<div class="detail-key">' + esc(h) + '</div>' +
-        '<div class="detail-val">' + esc(selectedRow[h] || '—') + '</div>' +
-        '</div>';
+      return '<div class="detail-cell"><div class="detail-key">'+esc(h)+'</div><div class="detail-val">'+esc(selectedRow[h]||'—')+'</div></div>';
     }).join('');
+    // Clear previous feedback
+    var fb = document.getElementById('reviewFeedback');
+    if (fb) { fb.className='review-feedback'; fb.textContent=''; }
+    var ci = document.getElementById('commentInput');
+    if (ci) ci.value = '';
+    renderDetailIssues(selectedRow);
     document.getElementById('detailPanel').classList.add('open');
     renderTable();
   };
 
   window.closeDetail = function() {
-    selectedRow = null;
+    selectedRow=null;
     document.getElementById('detailPanel').classList.remove('open');
     renderTable();
   };
 
-  // ── first render ──────────────────────────────────────────────────────
-  renderTable();
+  window.submitAction = function(action) {
+    if (!selectedRow) return;
+    var ci = document.getElementById('commentInput');
+    var commentText = ci ? ci.value.trim() : '';
+    var fb = document.getElementById('reviewFeedback');
+
+    if (action==='comment' && !commentText) {
+      fb.textContent = 'Please write a comment before submitting.';
+      fb.className = 'review-feedback visible err'; return;
+    }
+
+    // Disable buttons while submitting
+    ['btnApprove','btnReject','btnFlag','btnComment'].forEach(function(id) {
+      var b = document.getElementById(id); if(b) b.disabled=true;
+    });
+    if (ci) ci.disabled = true;
+    if (fb) { fb.className='review-feedback'; fb.textContent=''; }
+
+    createIssue(selectedRow, action, commentText, function(ok, errMsg, issue) {
+      ['btnApprove','btnReject','btnFlag','btnComment'].forEach(function(id) {
+        var b = document.getElementById(id); if(b) b.disabled=false;
+      });
+      if (ci) { ci.disabled=false; ci.value=''; }
+      if (ok) {
+        fb.textContent = 'Submitted! View on GitHub: #' + issue.number;
+        fb.className = 'review-feedback visible ok';
+        renderDetailIssues(selectedRow);
+        renderTable();
+        if (leafletMap) renderMarkers();
+      } else {
+        fb.textContent = 'Failed to submit: ' + (errMsg||'unknown error');
+        fb.className = 'review-feedback visible err';
+      }
+    });
+  };
+
+  // ── initial load ──────────────────────────────────────────────────────
+  var ghStatusEl = document.getElementById('ghStatus');
+
+  fetchAllIssues(function(cache) {
+    if (!GH_READY) {
+      if (ghStatusEl) { ghStatusEl.textContent = 'reviews disabled'; }
+    } else if (cache === null) {
+      if (ghStatusEl) { ghStatusEl.className='gh-status err'; ghStatusEl.textContent='GitHub error'; }
+    } else {
+      var count = Object.keys(cache).reduce(function(n,k){return n+cache[k].length;},0);
+      if (ghStatusEl) { ghStatusEl.className='gh-status ok'; ghStatusEl.textContent=count+' review'+(count===1?'':'s'); }
+    }
+    renderTable();
+    if (leafletMap) renderMarkers();
+  });
+
+  renderTable(); // immediate render, updates again after issues load
 
 })();
 </script>
