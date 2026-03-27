@@ -49,9 +49,7 @@
   .field select:disabled { opacity: 0.4; cursor: not-allowed; }
   .field input::placeholder { color: var(--text-hint); }
   .divider { border: none; border-top: 0.5px solid var(--border); margin: 28px 0; }
-
-  /* ── SPSS section ── */
-  .spss-section { margin-top: 0; }
+  /* SPSS section */
   .spss-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
   .spss-title { font-size: 13px; font-weight: 500; color: var(--text-primary); }
   .spss-optional { font-size: 11px; color: var(--text-hint); font-family: 'DM Mono', monospace; }
@@ -63,13 +61,11 @@
   .spss-drop-text span { color: var(--text-hint); font-size: 12px; display: block; margin-top: 2px; font-family: 'DM Mono', monospace; }
   .spss-loaded { display: none; }
   .spss-loaded.visible { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--success-bg); border: 0.5px solid #b7dfcc; border-radius: var(--radius-sm); }
-  .spss-loaded-icon { font-size: 14px; }
   .spss-loaded-text { flex: 1; font-size: 13px; color: var(--success); }
   .spss-loaded-remove { background: none; border: none; cursor: pointer; color: var(--success); font-size: 16px; padding: 2px 4px; opacity: 0.6; }
   .spss-loaded-remove:hover { opacity: 1; }
   .spss-hint { margin-top: 8px; font-size: 12px; color: var(--text-hint); line-height: 1.5; }
   .spss-hint code { font-family: 'DM Mono', monospace; background: var(--bg); border: 0.5px solid var(--border); border-radius: 3px; padding: 1px 5px; font-size: 11px; }
-
   .msg { padding: 12px 14px; border-radius: var(--radius-sm); font-size: 13px; line-height: 1.5; margin-bottom: 16px; display: none; }
   .msg.visible { display: block; }
   .msg.error { background: var(--error-bg); color: var(--error); border: 0.5px solid #f5c6c6; }
@@ -105,7 +101,6 @@
 </header>
 
 <div class="card">
-  <!-- CSV upload -->
   <div class="drop-zone" id="dropZone">
     <input type="file" id="fileInput" accept=".csv" />
     <div class="drop-icon">
@@ -124,7 +119,6 @@
     <button class="file-remove" id="fileRemove" title="Remove">×</button>
   </div>
 
-  <!-- Column mapping -->
   <div class="field-group" id="fieldGroup" style="display:none;">
     <hr class="divider" />
     <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">Map your CSV columns to location fields.</p>
@@ -137,34 +131,30 @@
       <div class="field"><label>Board title</label><input type="text" id="boardTitle" placeholder="My data board" /></div>
     </div>
 
-    <!-- SPSS variable map upload -->
+    <!-- SPSS scheme upload -->
     <hr class="divider" />
-    <div class="spss-section">
-      <div class="spss-header">
-        <span class="spss-title">SPSS variable labels map</span>
-        <span class="spss-optional">optional</span>
-      </div>
-
-      <div class="spss-drop" id="spssDrop">
-        <input type="file" id="spssInput" accept=".json" />
-        <div class="spss-drop-icon">JSON</div>
-        <div class="spss-drop-text">
-          Drop your labels JSON here or click to browse
-          <span>.json file</span>
-        </div>
-      </div>
-
-      <div class="spss-loaded" id="spssLoaded">
-        <span class="spss-loaded-icon">✓</span>
-        <span class="spss-loaded-text" id="spssLoadedText">labels.json loaded</span>
-        <button class="spss-loaded-remove" id="spssRemove" title="Remove">×</button>
-      </div>
-
-      <p class="spss-hint">
-        Format: <code>{ "column_name": "Variable Label", ... }</code><br>
-        Maps each CSV column to a readable SPSS variable label. If omitted, column names are used as-is.
-      </p>
+    <div class="spss-header">
+      <span class="spss-title">SPSS coding scheme</span>
+      <span class="spss-optional">optional · enables coded export</span>
     </div>
+    <div class="spss-drop" id="spssDrop">
+      <input type="file" id="spssInput" accept=".json" />
+      <div class="spss-drop-icon">JSON</div>
+      <div class="spss-drop-text">
+        Drop your form definition JSON here or click to browse
+        <span>Any form JSON with id, fieldName, type, and metadata</span>
+      </div>
+    </div>
+    <div class="spss-loaded" id="spssLoaded">
+      <span style="font-size:14px;">✓</span>
+      <span class="spss-loaded-text" id="spssLoadedText">scheme generated</span>
+      <button class="spss-loaded-remove" id="spssRemove" title="Remove">×</button>
+    </div>
+    <p class="spss-hint">
+      Upload the raw form definition JSON exported from your survey tool.<br>
+      Dropdown and yes/no fields are auto-coded as <code>numeric</code> with value labels.<br>
+      Text and image fields stay as <code>string</code>. Works with any form, any version.
+    </p>
   </div>
 
   <hr class="divider" id="actionDivider" style="display:none;" />
@@ -186,8 +176,8 @@
   <p class="how-label">How it works</p>
   <div class="steps">
     <div class="step"><p class="step-num">01</p><p class="step-text">Upload a CSV with latitude and longitude columns.</p></div>
-    <div class="step"><p class="step-num">02</p><p class="step-text">Optionally attach a JSON labels map for SPSS export.</p></div>
-    <div class="step"><p class="step-num">03</p><p class="step-text">Share the link — viewers can export as CSV, SPSS, or Shapefile.</p></div>
+    <div class="step"><p class="step-num">02</p><p class="step-text">Upload your form definition JSON — coding scheme is generated automatically for any form.</p></div>
+    <div class="step"><p class="step-num">03</p><p class="step-text">Share the link — viewers export as CSV, SPSS .sav, or Shapefile.</p></div>
   </div>
 </div>
 
@@ -204,7 +194,7 @@ var spssDrop=$('spssDrop'), spssInput=$('spssInput'), spssLoaded=$('spssLoaded')
 var spssLoadedText=$('spssLoadedText'), spssRemove=$('spssRemove');
 
 var parsedData = null;
-var spssLabels = null; // { colName: "Label", ... }
+var spssScheme = null; // full scheme: { fieldId: { varLabel, coding, valueLabels, type } }
 
 function showMsg(t,c){msgEl.textContent=t;msgEl.className='msg visible '+c;}
 function hideMsg(){msgEl.className='msg';}
@@ -219,7 +209,7 @@ function encodePayload(obj) {
       var bin = '';
       for (var i=0;i<comp.length;i++) bin += String.fromCharCode(comp[i]);
       return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
-    } catch(e) { console.warn('pako failed, using plain:', e); }
+    } catch(e) { console.warn('pako failed:', e); }
   }
   return btoa(unescape(encodeURIComponent(json))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
 }
@@ -266,7 +256,7 @@ function loadFile(file) {
   var reader=new FileReader();
   reader.onload=function(e){
     var result=parseCSV(e.target.result);
-    if(!result||!result.headers.length){showMsg('Could not parse CSV. Ensure it has headers and data rows.','error');return;}
+    if(!result||!result.headers.length){showMsg('Could not parse CSV.','error');return;}
     parsedData=result;
     fileName.textContent=file.name;
     fileSize.textContent=fmtBytes(file.size)+' · '+result.rows.length+' rows · '+result.headers.length+' cols';
@@ -282,20 +272,103 @@ function loadFile(file) {
   reader.readAsText(file);
 }
 
-// SPSS JSON upload
-function loadSpssJson(file) {
-  if(!file||!file.name.toLowerCase().endsWith('.json')){showMsg('Please upload a .json file for the SPSS labels map.','error');return;}
+/**
+ * buildSchemeFromFormDef — converts any raw form definition array
+ * (array of { id, fieldName, type, metadata }) into an SPSS scheme.
+ * Works with any form, any version — no hardcoding.
+ */
+function buildSchemeFromFormDef(formDef) {
+  if(!Array.isArray(formDef)||!formDef.length) throw new Error('Expected a JSON array of field objects');
+  var first=formDef[0];
+  if(!first.id||!first.fieldName||!first.type) throw new Error('Fields must have id, fieldName, and type properties');
+
+  var scheme={};
+  formDef.forEach(function(field){
+    var entry={
+      id:        field.id,
+      fieldName: field.fieldName,
+      varLabel:  field.fieldName.trim().slice(0,120),
+      type:      field.type,
+      coding:    null,
+      valueLabels: null
+    };
+
+    if(field.type==='yes_no'){
+      entry.coding={yes:1,no:2};
+      entry.valueLabels={1:'Yes',2:'No'};
+    }
+    else if(field.type==='dropdown'){
+      var opts=field.metadata&&field.metadata.dropdown&&field.metadata.dropdown.options;
+      if(opts&&opts.length){
+        var realOpts=opts.filter(function(o){return o!=='-'&&o!=='';});
+        entry.coding={};entry.valueLabels={};
+        realOpts.forEach(function(o,i){entry.coding[o]=i+1;entry.valueLabels[i+1]=o;});
+        if(field.metadata.dropdown.allowOther){
+          var next=realOpts.length+1;
+          entry.coding['Other']=next;entry.valueLabels[next]='Other (specify)';
+        }
+      }
+    }
+    else if(field.type==='checklist'){
+      var opts=field.metadata&&field.metadata.checklist&&field.metadata.checklist.options;
+      if(opts&&opts.length){
+        entry.coding={};entry.valueLabels={};
+        opts.forEach(function(o,i){entry.coding[o]=i+1;entry.valueLabels[i+1]=o;});
+        if(field.metadata.checklist.allowOther){
+          var next=opts.length+1;
+          entry.coding['Other']=next;entry.valueLabels[next]='Other (specify)';
+        }
+      }
+    }
+    else if(field.type==='rating'||field.type==='scale'||field.type==='number'){
+      // Numeric fields — no coding needed, treat as numeric directly
+      entry.coding={};  // empty coding = numeric passthrough
+      entry.valueLabels={};
+    }
+    // text, image, date, duration, currency → stay as string (coding=null)
+
+    scheme[field.id]=entry;
+  });
+  return scheme;
+}
+
+function loadSpssScheme(file) {
+  if(!file||!file.name.toLowerCase().endsWith('.json')){showMsg('Please upload a .json file.','error');return;}
   var reader=new FileReader();
   reader.onload=function(e){
     try {
       var parsed=JSON.parse(e.target.result);
-      if(typeof parsed!=='object'||Array.isArray(parsed)) throw new Error('JSON must be an object like {"col":"Label"}');
-      spssLabels=parsed;
+
+      // Detect format and build scheme accordingly
+      if(Array.isArray(parsed)){
+        // Raw form definition array — auto-generate scheme
+        spssScheme=buildSchemeFromFormDef(parsed);
+      } else if(typeof parsed==='object'){
+        var keys=Object.keys(parsed);
+        if(!keys.length) throw new Error('JSON object is empty');
+        var first=parsed[keys[0]];
+        if(typeof first==='object'&&first.varLabel){
+          // Already a generated scheme
+          spssScheme=parsed;
+        } else if(typeof first==='string'){
+          // Simple { id: "label" } format — wrap into scheme with no coding
+          var converted={};
+          keys.forEach(function(k){converted[k]={varLabel:first,type:'text',coding:null,valueLabels:null};});
+          spssScheme=converted;
+        } else {
+          throw new Error('Unrecognised JSON format');
+        }
+      } else {
+        throw new Error('JSON must be an array (form definition) or object (scheme)');
+      }
+
+      var total=Object.keys(spssScheme).length;
+      var coded=Object.keys(spssScheme).filter(function(k){return spssScheme[k].coding!==null;}).length;
       spssLoaded.classList.add('visible');
       spssDrop.style.display='none';
-      spssLoadedText.textContent=file.name+' ('+Object.keys(parsed).length+' labels)';
+      spssLoadedText.textContent=file.name+' · '+total+' fields · '+coded+' coded numeric';
     } catch(err) {
-      showMsg('Invalid JSON: '+err.message,'error');
+      showMsg('Could not read form JSON: '+err.message,'error');
     }
   };
   reader.readAsText(file);
@@ -303,10 +376,10 @@ function loadSpssJson(file) {
 
 spssDrop.addEventListener('dragover',function(e){e.preventDefault();spssDrop.classList.add('drag-over');});
 spssDrop.addEventListener('dragleave',function(){spssDrop.classList.remove('drag-over');});
-spssDrop.addEventListener('drop',function(e){e.preventDefault();spssDrop.classList.remove('drag-over');loadSpssJson(e.dataTransfer.files[0]);});
-spssInput.addEventListener('change',function(){loadSpssJson(spssInput.files[0]);});
+spssDrop.addEventListener('drop',function(e){e.preventDefault();spssDrop.classList.remove('drag-over');loadSpssScheme(e.dataTransfer.files[0]);});
+spssInput.addEventListener('change',function(){loadSpssScheme(spssInput.files[0]);});
 spssRemove.addEventListener('click',function(){
-  spssLabels=null;spssInput.value='';
+  spssScheme=null;spssInput.value='';
   spssLoaded.classList.remove('visible');
   spssDrop.style.display='';
 });
@@ -333,24 +406,23 @@ generateBtn.addEventListener('click',function(){
     var lat=parseFloat(r[colLat.value]),lng=parseFloat(r[colLng.value]);
     return !isNaN(lat)&&!isNaN(lng)&&lat>=-90&&lat<=90&&lng>=-180&&lng<=180;
   });
-  if(!filtered.length){showMsg('No valid lat/lng values found. Check your column mapping.','error');return;}
+  if(!filtered.length){showMsg('No valid lat/lng values found.','error');return;}
   hideMsg();
 
   var payload={
-    title:    boardTitle.value.trim()||'Data Board',
-    latCol:   colLat.value,
-    lngCol:   colLng.value,
-    labelCol: colLabel.value||null,
-    headers:  parsedData.headers,
-    rows:     filtered,
-    spssLabels: spssLabels||null   // null if not uploaded
+    title:     boardTitle.value.trim()||'Data Board',
+    latCol:    colLat.value,
+    lngCol:    colLng.value,
+    labelCol:  colLabel.value||null,
+    headers:   parsedData.headers,
+    rows:      filtered,
+    spssScheme: spssScheme||null
   };
 
   var encoded;
   try{encoded=encodePayload(payload);}
   catch(e){showMsg('Encoding failed: '+e.message,'error');return;}
-
-  if(encoded.length>1900000){showMsg('Dataset too large even after compression. Try fewer rows or columns.','error');return;}
+  if(encoded.length>1900000){showMsg('Dataset too large even after compression.','error');return;}
 
   var base=window.location.href.replace(/\/index\.html(\?.*)?$/,'').replace(/\/$/,'');
   var url=base+'/board.html#'+encoded;
@@ -363,10 +435,11 @@ generateBtn.addEventListener('click',function(){
   var ratio=Math.round(rawKB/(compKB||1));
   var skipped=parsedData.rows.length-filtered.length;
   var usingPako=typeof pako!=='undefined';
+  var coded=spssScheme?Object.keys(spssScheme).filter(function(k){return spssScheme[k]&&spssScheme[k].coding;}).length:0;
   statsRow.innerHTML=
-    '<span>'+filtered.length+' rows mapped'+(skipped?' · '+skipped+' skipped':'')+'</span>'+
+    '<span>'+filtered.length+' rows'+(skipped?' · '+skipped+' skipped':'')+'</span>'+
     '<span class="badge">'+(usingPako?ratio+'× compressed · ':'plain · ')+compKB+' KB</span>'+
-    (spssLabels?'<span class="badge">'+Object.keys(spssLabels).length+' SPSS labels</span>':'');
+    (spssScheme?'<span class="badge">'+coded+' coded fields</span>':'');
 });
 
 copyBtn.addEventListener('click',function(){
