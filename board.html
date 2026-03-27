@@ -15,7 +15,6 @@
     --accent-bg: #1a1916; --accent-text: #f8f7f4;
     --radius: 10px; --radius-sm: 6px;
     --header-h: 56px; --tabs-h: 44px; --toolbar-h: 46px;
-
     --c-approve: #2d6a4f; --c-approve-bg: #eaf4ef; --c-approve-border: #b7dfcc;
     --c-reject: #9b2c2c;  --c-reject-bg: #fdf0f0;  --c-reject-border: #f5c6c6;
     --c-flag: #92400e;    --c-flag-bg: #fef3e2;    --c-flag-border: #f9d8a0;
@@ -24,7 +23,6 @@
   html, body { height: 100%; overflow: hidden; }
   body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text-primary); display: flex; flex-direction: column; }
 
-  /* ── topbar ── */
   .topbar { height: var(--header-h); background: var(--surface); border-bottom: 0.5px solid var(--border); display: flex; align-items: center; padding: 0 20px; gap: 14px; flex-shrink: 0; }
   .board-title { font-size: 15px; font-weight: 500; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .row-count { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-hint); white-space: nowrap; }
@@ -32,14 +30,12 @@
   .sheet-status.ok  { color: var(--c-approve); }
   .sheet-status.err { color: var(--c-reject); }
 
-  /* ── tabs ── */
   .tabs { height: var(--tabs-h); background: var(--surface); border-bottom: 0.5px solid var(--border); display: flex; align-items: flex-end; padding: 0 20px; gap: 2px; flex-shrink: 0; }
   .tab { padding: 8px 14px 9px; font-size: 13px; cursor: pointer; border: none; background: none; font-family: 'DM Sans', sans-serif; color: var(--text-secondary); border-bottom: 2px solid transparent; transition: color 0.12s, border-color 0.12s; display: flex; align-items: center; gap: 6px; }
   .tab svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
   .tab:hover { color: var(--text-primary); }
   .tab.active { color: var(--text-primary); font-weight: 500; border-bottom-color: var(--text-primary); }
 
-  /* ── toolbar ── */
   .toolbar { height: var(--toolbar-h); padding: 0 20px; background: var(--bg); border-bottom: 0.5px solid var(--border); display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
   .search-wrap { position: relative; flex: 1; max-width: 340px; }
   .search-wrap svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; stroke: var(--text-hint); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
@@ -48,12 +44,10 @@
   .search-input::placeholder { color: var(--text-hint); }
   .result-count { font-size: 12px; color: var(--text-hint); font-family: 'DM Mono', monospace; white-space: nowrap; }
 
-  /* ── views ── */
   .views { flex: 1; overflow: hidden; position: relative; }
   .view { position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity 0.15s; }
   .view.active { opacity: 1; pointer-events: auto; }
 
-  /* ── table ── */
   #tableView { overflow-y: auto; overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   thead th { position: sticky; top: 0; z-index: 2; background: var(--surface); border-bottom: 0.5px solid var(--border); text-align: left; padding: 9px 14px; font-size: 11px; font-weight: 500; font-family: 'DM Mono', monospace; color: var(--text-hint); text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap; cursor: pointer; user-select: none; }
@@ -70,14 +64,12 @@
   tbody td.coord { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text-hint); }
   .no-results { padding: 48px 24px; text-align: center; font-size: 14px; color: var(--text-hint); }
 
-  /* ── status badges ── */
   .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; border: 0.5px solid transparent; white-space: nowrap; }
   .badge-approve { background: var(--c-approve-bg); color: var(--c-approve); border-color: var(--c-approve-border); }
   .badge-reject  { background: var(--c-reject-bg);  color: var(--c-reject);  border-color: var(--c-reject-border); }
   .badge-flag    { background: var(--c-flag-bg);    color: var(--c-flag);    border-color: var(--c-flag-border); }
   .badge-comment { background: var(--c-comment-bg); color: var(--c-comment); border-color: var(--c-comment-border); }
 
-  /* ── map ── */
   #mapView { overflow: hidden; }
   #map { width: 100%; height: 100%; }
   .leaflet-popup-content-wrapper { border-radius: var(--radius-sm) !important; box-shadow: 0 2px 12px rgba(0,0,0,0.1) !important; border: 0.5px solid var(--border); font-family: 'DM Sans', sans-serif; font-size: 13px; }
@@ -86,32 +78,25 @@
   .popup-fields { font-size: 12px; line-height: 1.8; color: var(--text-secondary); }
   .popup-fields strong { color: var(--text-primary); font-weight: 500; }
 
-  /* ── detail panel ── */
   .detail-panel { position: absolute; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 0.5px solid var(--border); transform: translateY(100%); transition: transform 0.2s cubic-bezier(0.22,1,0.36,1); z-index: 10; max-height: 72%; overflow-y: auto; }
   .detail-panel.open { transform: translateY(0); }
-
   .detail-header { display: flex; align-items: center; gap: 12px; padding: 16px 20px 12px; border-bottom: 0.5px solid var(--border); position: sticky; top: 0; background: var(--surface); z-index: 1; }
   .detail-title { font-weight: 500; font-size: 14px; flex: 1; }
   .detail-close { background: none; border: none; cursor: pointer; color: var(--text-hint); font-size: 18px; line-height: 1; padding: 2px 6px; border-radius: 4px; }
   .detail-close:hover { color: var(--text-primary); background: var(--bg); }
-
   .detail-body { padding: 16px 20px; display: flex; flex-direction: column; gap: 20px; }
   .detail-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
   .detail-cell { background: var(--bg); border-radius: var(--radius-sm); padding: 8px 10px; }
   .detail-key { font-size: 10px; font-weight: 500; color: var(--text-hint); text-transform: uppercase; letter-spacing: 0.06em; font-family: 'DM Mono', monospace; margin-bottom: 3px; }
   .detail-val { font-size: 13px; color: var(--text-primary); word-break: break-word; }
 
-  /* ── review section ── */
   .review-section { border-top: 0.5px solid var(--border); padding-top: 16px; }
   .review-label { font-size: 11px; font-weight: 500; color: var(--text-hint); text-transform: uppercase; letter-spacing: 0.08em; font-family: 'DM Mono', monospace; margin-bottom: 12px; }
-
-  /* reviewer name row */
   .reviewer-row { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+  .reviewer-label { font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
   .reviewer-input { flex: 1; max-width: 240px; padding: 7px 12px; font-size: 13px; font-family: 'DM Sans', sans-serif; background: var(--surface); border: 0.5px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-primary); transition: border-color 0.15s; }
   .reviewer-input:focus { outline: none; border-color: var(--accent-bg); }
   .reviewer-input::placeholder { color: var(--text-hint); }
-  .reviewer-label { font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
-
   .review-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
   .action-btn { display: flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer; border: 0.5px solid transparent; transition: opacity 0.12s, transform 0.1s; }
   .action-btn:active:not(:disabled) { transform: scale(0.97); }
@@ -121,29 +106,23 @@
   .action-btn.flag    { background: var(--c-flag-bg);    color: var(--c-flag);    border-color: var(--c-flag-border); }
   .action-btn.comment { background: var(--c-comment-bg); color: var(--c-comment); border-color: var(--c-comment-border); }
   .action-btn:hover:not(:disabled) { opacity: 0.78; }
-
   .comment-input { width: 100%; padding: 8px 12px; font-size: 13px; font-family: 'DM Sans', sans-serif; background: var(--surface); border: 0.5px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-primary); resize: vertical; min-height: 60px; transition: border-color 0.15s; }
   .comment-input:focus { outline: none; border-color: var(--accent-bg); }
   .comment-input::placeholder { color: var(--text-hint); }
   .comment-input:disabled { opacity: 0.4; }
-
   .review-feedback { margin-top: 10px; font-size: 13px; padding: 9px 12px; border-radius: var(--radius-sm); display: none; }
   .review-feedback.visible { display: block; }
   .review-feedback.ok  { background: var(--c-approve-bg); color: var(--c-approve); border: 0.5px solid var(--c-approve-border); }
   .review-feedback.err { background: var(--c-reject-bg);  color: var(--c-reject);  border: 0.5px solid var(--c-reject-border); }
 
-  /* existing reviews */
   .reviews-list { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
   .review-item { padding: 10px 12px; border-radius: var(--radius-sm); border: 0.5px solid var(--border); background: var(--bg); }
-  .review-item-top { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap; }
-  .review-item-body { font-size: 12px; color: var(--text-secondary); line-height: 1.55; word-break: break-word; margin-top: 4px; }
+  .review-item-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+  .review-item-body { font-size: 12px; color: var(--text-secondary); line-height: 1.55; word-break: break-word; }
   .review-item-meta { font-size: 11px; color: var(--text-hint); font-family: 'DM Mono', monospace; margin-left: auto; }
 
-  /* not-configured banner */
-  .not-configured { padding: 12px 14px; background: var(--c-flag-bg); color: var(--c-flag); border: 0.5px solid var(--c-flag-border); border-radius: var(--radius-sm); font-size: 13px; line-height: 1.5; }
-  .not-configured a { color: inherit; }
+  .not-configured { padding: 12px 14px; background: var(--c-flag-bg); color: var(--c-flag); border: 0.5px solid var(--c-flag-border); border-radius: var(--radius-sm); font-size: 13px; line-height: 1.6; }
 
-  /* error state */
   .error-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 12px; text-align: center; padding: 40px; }
   .error-state h2 { font-size: 18px; font-weight: 400; }
   .error-state p { font-size: 14px; color: var(--text-secondary); max-width: 380px; line-height: 1.6; }
@@ -158,18 +137,15 @@
 </style>
 </head>
 <body>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-
 <script>
 (function () {
 
   // ─────────────────────────────────────────────────────────────────────
-  // CONFIGURATION — paste your deployed Apps Script URL here
-  // Deploy instructions are in apps-script.js
+  // PASTE YOUR APPS SCRIPT /exec URL HERE (from Deploy → New deployment)
   // ─────────────────────────────────────────────────────────────────────
-  var SHEET_URL = 'https://script.google.com/macros/s/AKfycbzjCKP4zHepdFZv7z582Jng8ELMks_ABTRU28CCeIuvOHZOZ3BwsBKc2sBCjxo55CKF/exec'; // e.g. 'https://script.google.com/macros/s/ABC.../exec'
+  var SHEET_URL = 'https://script.google.com/macros/s/AKfycbzsY17vKqxmiNyEDa_7SJf6rvSolYBdYnIbbViCAEgmXlM6OqKloH79Bpd4bG2KeULI/exec';
 
   var SHEET_READY = SHEET_URL.indexOf('script.google.com') !== -1;
 
@@ -181,8 +157,9 @@
   function showError(title, detail, tech) {
     document.title = 'CSV Board';
     document.body.innerHTML =
-      '<div class="error-state"><h2>' + esc(title) + '</h2><p>' + esc(detail) + '</p>' +
-      (tech ? '<code>' + esc(tech) + '</code>' : '') + '</div>';
+      '<div class="error-state"><h2>'+esc(title)+'</h2><p>'+esc(detail)+'</p>'+
+      (tech?'<code>'+esc(tech)+'</code>':'')+
+      '</div>';
   }
   function fmtDate(iso) {
     if (!iso) return '';
@@ -196,21 +173,21 @@
   function decodeHash(hash) {
     var b64 = hash.replace(/-/g,'+').replace(/_/g,'/');
     var pad = b64.length % 4;
-    if (pad === 2) b64 += '=='; else if (pad === 3) b64 += '=';
+    if (pad===2) b64+='=='; else if (pad===3) b64+='=';
     var binStr = atob(b64);
     if (typeof pako !== 'undefined') {
       try {
         var bytes = new Uint8Array(binStr.length);
-        for (var i = 0; i < binStr.length; i++) bytes[i] = binStr.charCodeAt(i);
+        for (var i=0;i<binStr.length;i++) bytes[i]=binStr.charCodeAt(i);
         return JSON.parse(new TextDecoder().decode(pako.inflate(bytes)));
-      } catch (_) {}
+      } catch(_) {}
     }
     return JSON.parse(decodeURIComponent(escape(binStr)));
   }
 
   var payload;
   try { payload = decodeHash(rawHash); }
-  catch (e) { showError('Could not read board data.', 'The link may be corrupted. Try generating a new one.', e.message); return; }
+  catch(e) { showError('Could not read board data.', 'The link may be corrupted. Try generating a new one.', e.message); return; }
 
   var title    = payload.title    || 'Data Board';
   var latCol   = payload.latCol;
@@ -219,366 +196,355 @@
   var headers  = payload.headers;
   var rows     = payload.rows;
 
-  if (!Array.isArray(rows) || !rows.length)      { showError('Empty board.', 'No data rows found.'); return; }
-  if (!Array.isArray(headers) || !headers.length) { showError('Invalid board.', 'Missing column headers.'); return; }
+  if (!Array.isArray(rows)||!rows.length)      { showError('Empty board.','No data rows found.'); return; }
+  if (!Array.isArray(headers)||!headers.length) { showError('Invalid board.','Missing column headers.'); return; }
 
   document.title = title;
 
-  // ── Google Sheets API ─────────────────────────────────────────────────
-  // reviewCache: rowKey -> array of review objects
-  var reviewCache = {};
+  // ── Google Sheets via GET-only requests ───────────────────────────────
+  // All requests are plain GET with URL params to avoid CORS preflight.
+  var reviewCache = {}; // rowKey -> [review, ...]
 
   function rowKey(row) {
     var lat = parseFloat(row[latCol]).toFixed(5);
     var lng = parseFloat(row[lngCol]).toFixed(5);
-    var lbl = labelCol ? (row[labelCol] || '') : '';
-    return lat + '|' + lng + '|' + lbl;
+    var lbl = labelCol ? (row[labelCol]||'') : '';
+    return lat+'|'+lng+'|'+lbl;
+  }
+
+  function buildUrl(params) {
+    var pairs = Object.keys(params).map(function(k) {
+      return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);
+    });
+    return SHEET_URL + '?' + pairs.join('&');
   }
 
   function fetchReviews(cb) {
     if (!SHEET_READY) { cb(false); return; }
-    fetch(SHEET_URL)
+    fetch(buildUrl({ action: 'get' }))
       .then(function(r) { return r.json(); })
       .then(function(data) {
         reviewCache = {};
         if (!data.ok || !Array.isArray(data.reviews)) { cb(false); return; }
         data.reviews.forEach(function(rev) {
           var k = rev.rowKey;
-          if (!reviewCache[k]) reviewCache[k] = [];
-          reviewCache[k].push(rev);
+          if (k) {
+            if (!reviewCache[k]) reviewCache[k] = [];
+            reviewCache[k].push(rev);
+          }
         });
         cb(true);
       })
-      .catch(function() { cb(false); });
+      .catch(function(e) { console.error('fetchReviews:', e); cb(false); });
   }
 
   function postReview(row, action, comment, reviewer, cb) {
-    if (!SHEET_READY) { cb(false, 'Sheet URL not configured.'); return; }
-    var body = {
-      rowKey:   rowKey(row),
-      rowLabel: getLabel(row),
-      action:   action,
+    if (!SHEET_READY) { cb(false,'Sheet URL not configured.'); return; }
+    var key   = rowKey(row);
+    var label = getLabel(row);
+    var url = buildUrl({
+      action:   'post',
+      action2:  action,       // "action" is reserved by Apps Script routing
+      rowKey:   key,
+      rowLabel: label,
       comment:  comment,
       reviewer: reviewer || 'anonymous'
-    };
-    fetch(SHEET_URL, {
-      method: 'POST',
-      body: JSON.stringify(body)
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data.ok) {
-        // Optimistically update local cache
-        var k = body.rowKey;
-        if (!reviewCache[k]) reviewCache[k] = [];
-        reviewCache[k].push({
-          rowKey: k, rowLabel: body.rowLabel,
-          action: action, comment: comment,
-          reviewer: reviewer || 'anonymous',
-          timestamp: data.timestamp || new Date().toISOString()
-        });
-        cb(true, null);
-      } else {
-        cb(false, data.error || 'Unknown error');
-      }
-    })
-    .catch(function(e) { cb(false, e.message); });
+    });
+    fetch(url)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.ok) {
+          // Update local cache optimistically
+          if (!reviewCache[key]) reviewCache[key] = [];
+          reviewCache[key].push({
+            rowKey: key, rowLabel: label,
+            action: action, comment: comment,
+            reviewer: reviewer||'anonymous',
+            timestamp: data.timestamp || new Date().toISOString()
+          });
+          cb(true, null);
+        } else {
+          cb(false, data.error||'Unknown error from sheet');
+        }
+      })
+      .catch(function(e) { cb(false, e.message); });
   }
 
   // ── state ─────────────────────────────────────────────────────────────
-  var sortCol = null, sortDir = 1, filterText = '', selectedRow = null;
-  var leafletMap = null, markerLayer = null;
+  var sortCol=null, sortDir=1, filterText='', selectedRow=null;
+  var leafletMap=null, markerLayer=null;
 
   function getLabel(row) {
-    return (labelCol && row[labelCol]) ? row[labelCol] : (row[latCol] + ', ' + row[lngCol]);
+    return (labelCol&&row[labelCol]) ? row[labelCol] : (row[latCol]+', '+row[lngCol]);
   }
   function getFiltered() {
     if (!filterText) return rows;
-    var q = filterText.toLowerCase();
-    return rows.filter(function(r) {
-      return Object.keys(r).some(function(k) { return String(r[k]).toLowerCase().indexOf(q) !== -1; });
+    var q=filterText.toLowerCase();
+    return rows.filter(function(r){
+      return Object.keys(r).some(function(k){ return String(r[k]).toLowerCase().indexOf(q)!==-1; });
     });
   }
   function getSorted(arr) {
     if (!sortCol) return arr;
-    return arr.slice().sort(function(a, b) {
-      var va = a[sortCol]||'', vb = b[sortCol]||'';
-      var na = parseFloat(va), nb = parseFloat(vb);
-      if (!isNaN(na) && !isNaN(nb)) return (na-nb)*sortDir;
+    return arr.slice().sort(function(a,b){
+      var va=a[sortCol]||'',vb=b[sortCol]||'';
+      var na=parseFloat(va),nb=parseFloat(vb);
+      if(!isNaN(na)&&!isNaN(nb)) return (na-nb)*sortDir;
       return va.localeCompare(vb)*sortDir;
     });
   }
-
-  function latestActionForRow(row) {
-    var k = rowKey(row);
-    var revs = reviewCache[k];
-    if (!revs || !revs.length) return null;
-    return revs[revs.length - 1];
+  function latestAction(row) {
+    var k=rowKey(row), revs=reviewCache[k];
+    return (revs&&revs.length) ? revs[revs.length-1] : null;
   }
-
   function rowStatusBadge(row) {
-    var latest = latestActionForRow(row);
-    if (!latest) return '';
-    var map = {
-      approve: '<span class="badge badge-approve">✓ Approved</span>',
-      reject:  '<span class="badge badge-reject">✕ Rejected</span>',
-      flag:    '<span class="badge badge-flag">⚑ Flagged</span>',
-      comment: '<span class="badge badge-comment">✎ Comment</span>'
-    };
-    return map[latest.action] || '';
+    var l=latestAction(row); if(!l) return '';
+    var m={approve:'<span class="badge badge-approve">✓ Approved</span>',
+           reject: '<span class="badge badge-reject">✕ Rejected</span>',
+           flag:   '<span class="badge badge-flag">⚑ Flagged</span>',
+           comment:'<span class="badge badge-comment">✎ Comment</span>'};
+    return m[l.action]||'';
   }
-
   function markerColor(row) {
-    var latest = latestActionForRow(row);
-    if (!latest) return '#1a1916';
-    var colors = { approve:'#2d6a4f', reject:'#9b2c2c', flag:'#92400e', comment:'#1e3a8a' };
-    return colors[latest.action] || '#1a1916';
+    var l=latestAction(row); if(!l) return '#1a1916';
+    return {approve:'#2d6a4f',reject:'#9b2c2c',flag:'#92400e',comment:'#1e3a8a'}[l.action]||'#1a1916';
   }
 
-  // ── build page chrome ─────────────────────────────────────────────────
+  // ── build chrome ──────────────────────────────────────────────────────
   document.body.innerHTML =
-    '<div class="topbar">' +
-      '<span class="board-title">' + esc(title) + '</span>' +
-      '<span class="sheet-status" id="sheetStatus">' + (SHEET_READY ? 'loading reviews…' : 'reviews not configured') + '</span>' +
-      '<span class="row-count">' + rows.length + ' rows</span>' +
-    '</div>' +
-    '<div class="tabs">' +
-      '<button class="tab active" id="tabTable" onclick="switchTab(\'table\')">' +
-        '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>Table' +
-      '</button>' +
-      '<button class="tab" id="tabMap" onclick="switchTab(\'map\')">' +
-        '<svg viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>Map' +
-      '</button>' +
-    '</div>' +
-    '<div class="toolbar">' +
-      '<div class="search-wrap">' +
-        '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' +
-        '<input class="search-input" id="searchInput" placeholder="Search rows\u2026" oninput="onSearch(this.value)" />' +
-      '</div>' +
-      '<span class="result-count" id="resultCount"></span>' +
-    '</div>' +
-    '<div class="views">' +
-      '<div class="view active" id="tableView"></div>' +
-      '<div class="view" id="mapView"><div id="map"></div></div>' +
-    '</div>' +
-    '<div class="detail-panel" id="detailPanel">' +
-      '<div class="detail-header">' +
-        '<span class="detail-title" id="detailTitle"></span>' +
-        '<button class="detail-close" onclick="closeDetail()">&#x2715;</button>' +
-      '</div>' +
-      '<div class="detail-body">' +
-        '<div class="detail-grid" id="detailGrid"></div>' +
-        '<div class="review-section">' +
-          '<div class="review-label">Leave a review</div>' +
-          (!SHEET_READY
-            ? '<div class="not-configured">Reviews are not configured yet. Open <strong>board.html</strong> and paste your Apps Script URL into the <code>SHEET_URL</code> variable at the top of the script.</div>'
-            : '<div class="reviewer-row">' +
-                '<span class="reviewer-label">Your name:</span>' +
-                '<input class="reviewer-input" id="reviewerName" placeholder="e.g. John Doe" />' +
-              '</div>' +
-              '<div class="review-actions">' +
-                '<button class="action-btn approve" onclick="submitAction(\'approve\')" id="btnApprove">✓ Approve</button>' +
-                '<button class="action-btn reject"  onclick="submitAction(\'reject\')"  id="btnReject">✕ Reject</button>' +
-                '<button class="action-btn flag"    onclick="submitAction(\'flag\')"    id="btnFlag">⚑ Flag</button>' +
-                '<button class="action-btn comment" onclick="submitAction(\'comment\')" id="btnComment">✎ Comment</button>' +
-              '</div>' +
-              '<textarea class="comment-input" id="commentInput" placeholder="Add a comment (required for Comment action, optional for others)\u2026"></textarea>' +
+    '<div class="topbar">'+
+      '<span class="board-title">'+esc(title)+'</span>'+
+      '<span class="sheet-status" id="sheetStatus">'+(SHEET_READY?'loading reviews…':'reviews not configured')+'</span>'+
+      '<span class="row-count">'+rows.length+' rows</span>'+
+    '</div>'+
+    '<div class="tabs">'+
+      '<button class="tab active" id="tabTable" onclick="switchTab(\'table\')">'+
+        '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>Table'+
+      '</button>'+
+      '<button class="tab" id="tabMap" onclick="switchTab(\'map\')">'+
+        '<svg viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>Map'+
+      '</button>'+
+    '</div>'+
+    '<div class="toolbar">'+
+      '<div class="search-wrap">'+
+        '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'+
+        '<input class="search-input" id="searchInput" placeholder="Search rows\u2026" oninput="onSearch(this.value)" />'+
+      '</div>'+
+      '<span class="result-count" id="resultCount"></span>'+
+    '</div>'+
+    '<div class="views">'+
+      '<div class="view active" id="tableView"></div>'+
+      '<div class="view" id="mapView"><div id="map"></div></div>'+
+    '</div>'+
+    '<div class="detail-panel" id="detailPanel">'+
+      '<div class="detail-header">'+
+        '<span class="detail-title" id="detailTitle"></span>'+
+        '<button class="detail-close" onclick="closeDetail()">&#x2715;</button>'+
+      '</div>'+
+      '<div class="detail-body">'+
+        '<div class="detail-grid" id="detailGrid"></div>'+
+        '<div class="review-section">'+
+          '<div class="review-label">Leave a review</div>'+
+          (SHEET_READY
+            ? '<div class="reviewer-row">'+
+                '<span class="reviewer-label">Your name:</span>'+
+                '<input class="reviewer-input" id="reviewerName" placeholder="e.g. Jane Doe" />'+
+              '</div>'+
+              '<div class="review-actions">'+
+                '<button class="action-btn approve" id="btnApprove" onclick="submitAction(\'approve\')">✓ Approve</button>'+
+                '<button class="action-btn reject"  id="btnReject"  onclick="submitAction(\'reject\')">✕ Reject</button>'+
+                '<button class="action-btn flag"    id="btnFlag"    onclick="submitAction(\'flag\')">⚑ Flag</button>'+
+                '<button class="action-btn comment" id="btnComment" onclick="submitAction(\'comment\')">✎ Comment</button>'+
+              '</div>'+
+              '<textarea class="comment-input" id="commentInput" placeholder="Add a comment (required for Comment, optional for others)\u2026"></textarea>'+
               '<div class="review-feedback" id="reviewFeedback"></div>'
-          ) +
-          '<div id="reviewsList" style="margin-top:16px;"></div>' +
-        '</div>' +
-      '</div>' +
+            : '<div class="not-configured">Reviews not configured. Paste your Apps Script URL into the <strong>SHEET_URL</strong> variable at the top of board.html, then re-upload it.</div>'
+          )+
+          '<div id="reviewsList" style="margin-top:16px;"></div>'+
+        '</div>'+
+      '</div>'+
     '</div>';
 
   // ── table ─────────────────────────────────────────────────────────────
   function renderTable() {
-    var filtered = getSorted(getFiltered());
-    var el = document.getElementById('tableView');
-    var rc = document.getElementById('resultCount');
-    if (rc) rc.textContent = filterText ? (filtered.length + ' of ' + rows.length) : '';
-    if (!filtered.length) { el.innerHTML = '<div class="no-results">No rows match your search.</div>'; return; }
-
-    var coordSet = {}; coordSet[latCol] = true; coordSet[lngCol] = true;
-    var html = '<table><thead><tr>';
-    if (SHEET_READY) html += '<th class="th-status">Status</th>';
-    headers.forEach(function(h) {
-      var cls = sortCol===h ? (sortDir===1?'sort-asc':'sort-desc') : '';
-      html += '<th class="' + cls + '" onclick="sortBy(\'' + esc(h) + '\')">' + esc(h) + '</th>';
+    var filtered=getSorted(getFiltered());
+    var el=document.getElementById('tableView');
+    var rc=document.getElementById('resultCount');
+    if(rc) rc.textContent=filterText?(filtered.length+' of '+rows.length):'';
+    if(!filtered.length){el.innerHTML='<div class="no-results">No rows match your search.</div>';return;}
+    var coordSet={}; coordSet[latCol]=true; coordSet[lngCol]=true;
+    var html='<table><thead><tr>';
+    if(SHEET_READY) html+='<th class="th-status">Status</th>';
+    headers.forEach(function(h){
+      var cls=sortCol===h?(sortDir===1?'sort-asc':'sort-desc'):'';
+      html+='<th class="'+cls+'" onclick="sortBy(\''+esc(h)+'\')">'+esc(h)+'</th>';
     });
-    html += '</tr></thead><tbody>';
-    filtered.forEach(function(row) {
-      var idx = rows.indexOf(row);
-      html += '<tr class="' + (selectedRow===row?'highlighted':'') + '" onclick="selectRow(' + idx + ')">';
-      if (SHEET_READY) html += '<td>' + rowStatusBadge(row) + '</td>';
-      headers.forEach(function(h) {
-        var val = row[h] != null ? row[h] : '';
-        html += '<td class="' + (coordSet[h]?'coord':'') + '" title="' + esc(val) + '">' + esc(val||'—') + '</td>';
+    html+='</tr></thead><tbody>';
+    filtered.forEach(function(row){
+      var idx=rows.indexOf(row);
+      html+='<tr class="'+(selectedRow===row?'highlighted':'')+'" onclick="selectRow('+idx+')">';
+      if(SHEET_READY) html+='<td>'+rowStatusBadge(row)+'</td>';
+      headers.forEach(function(h){
+        var val=row[h]!=null?row[h]:'';
+        html+='<td class="'+(coordSet[h]?'coord':'')+'" title="'+esc(val)+'">'+esc(val||'—')+'</td>';
       });
-      html += '</tr>';
+      html+='</tr>';
     });
-    html += '</tbody></table>';
-    el.innerHTML = html;
+    html+='</tbody></table>';
+    el.innerHTML=html;
   }
 
   // ── detail reviews ────────────────────────────────────────────────────
   function renderDetailReviews(row) {
-    var el = document.getElementById('reviewsList');
-    if (!el || !SHEET_READY) return;
-    var k = rowKey(row);
-    var revs = reviewCache[k] || [];
-    if (!revs.length) { el.innerHTML = ''; return; }
-
-    var actionLabels = { approve:'✓ Approved', reject:'✕ Rejected', flag:'⚑ Flagged', comment:'✎ Comment' };
-    var actionBadge  = { approve:'badge-approve', reject:'badge-reject', flag:'badge-flag', comment:'badge-comment' };
-
-    var html = '<div class="review-label">Previous reviews (' + revs.length + ')</div><div class="reviews-list">';
-    revs.slice().reverse().forEach(function(rev) {
-      html +=
-        '<div class="review-item">' +
-          '<div class="review-item-top">' +
-            '<span class="badge ' + (actionBadge[rev.action]||'badge-comment') + '">' + esc(actionLabels[rev.action]||rev.action) + '</span>' +
-            '<span style="font-size:13px;color:var(--text-secondary);">' + esc(rev.reviewer||'anonymous') + '</span>' +
-            '<span class="review-item-meta">' + esc(fmtDate(rev.timestamp)) + '</span>' +
-          '</div>' +
-          (rev.comment ? '<div class="review-item-body">' + esc(rev.comment) + '</div>' : '') +
+    var el=document.getElementById('reviewsList'); if(!el||!SHEET_READY) return;
+    var k=rowKey(row), revs=reviewCache[k]||[];
+    if(!revs.length){el.innerHTML='';return;}
+    var aLabels={approve:'✓ Approved',reject:'✕ Rejected',flag:'⚑ Flagged',comment:'✎ Comment'};
+    var aBadge ={approve:'badge-approve',reject:'badge-reject',flag:'badge-flag',comment:'badge-comment'};
+    var html='<div class="review-label">Previous reviews ('+revs.length+')</div><div class="reviews-list">';
+    revs.slice().reverse().forEach(function(rev){
+      html+=
+        '<div class="review-item">'+
+          '<div class="review-item-top">'+
+            '<span class="badge '+(aBadge[rev.action]||'badge-comment')+'">'+esc(aLabels[rev.action]||rev.action)+'</span>'+
+            '<span style="font-size:13px;color:var(--text-secondary);">'+esc(rev.reviewer||'anonymous')+'</span>'+
+            '<span class="review-item-meta">'+esc(fmtDate(rev.timestamp))+'</span>'+
+          '</div>'+
+          (rev.comment?'<div class="review-item-body">'+esc(rev.comment)+'</div>':'')+
         '</div>';
     });
-    html += '</div>';
-    el.innerHTML = html;
+    html+='</div>';
+    el.innerHTML=html;
   }
 
   // ── map ───────────────────────────────────────────────────────────────
   function initMap() {
-    if (leafletMap) return;
-    if (typeof L === 'undefined') {
-      var mv = document.getElementById('mapView');
-      if (mv) mv.innerHTML = '<div class="no-results">Map unavailable — Leaflet failed to load.</div>';
+    if(leafletMap) return;
+    if(typeof L==='undefined'){
+      var mv=document.getElementById('mapView');
+      if(mv) mv.innerHTML='<div class="no-results">Map unavailable — Leaflet failed to load.</div>';
       return;
     }
-    leafletMap = L.map('map', { zoomControl: true });
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      attribution: '\u00a9 OpenStreetMap \u00a9 CartoDB', subdomains:'abcd', maxZoom:19
+    leafletMap=L.map('map',{zoomControl:true});
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{
+      attribution:'\u00a9 OpenStreetMap \u00a9 CartoDB',subdomains:'abcd',maxZoom:19
     }).addTo(leafletMap);
-    markerLayer = L.featureGroup().addTo(leafletMap);
+    markerLayer=L.featureGroup().addTo(leafletMap);
     renderMarkers();
   }
-
   function renderMarkers() {
-    if (!leafletMap || !markerLayer) return;
+    if(!leafletMap||!markerLayer) return;
     markerLayer.clearLayers();
-    var filtered = getSorted(getFiltered());
-    filtered.forEach(function(row) {
-      var lat = parseFloat(row[latCol]), lng = parseFloat(row[lngCol]);
-      if (isNaN(lat)||isNaN(lng)) return;
-      var color = markerColor(row);
-      var icon = L.divIcon({
-        className: '',
-        html: '<div style="width:10px;height:10px;background:'+color+';border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.28);"></div>',
-        iconSize:[10,10], iconAnchor:[5,5]
+    getSorted(getFiltered()).forEach(function(row){
+      var lat=parseFloat(row[latCol]),lng=parseFloat(row[lngCol]);
+      if(isNaN(lat)||isNaN(lng)) return;
+      var color=markerColor(row);
+      var icon=L.divIcon({
+        className:'',
+        html:'<div style="width:10px;height:10px;background:'+color+';border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.28);"></div>',
+        iconSize:[10,10],iconAnchor:[5,5]
       });
-      var lbl = getLabel(row);
-      var extraHtml = headers.filter(function(h){return h!==latCol&&h!==lngCol;}).slice(0,5)
+      var lbl=getLabel(row);
+      var extra=headers.filter(function(h){return h!==latCol&&h!==lngCol;}).slice(0,5)
         .map(function(h){return row[h]?'<span><strong>'+esc(h)+':</strong> '+esc(row[h])+'</span>':'';}).filter(Boolean).join('<br>');
-      var popup = '<div class="popup-title">'+esc(lbl)+'</div>' +
-        '<div class="popup-coords">'+lat.toFixed(5)+', '+lng.toFixed(5)+'</div>' +
-        (extraHtml?'<div class="popup-fields">'+extraHtml+'</div>':'');
-      L.marker([lat,lng],{icon:icon}).addTo(markerLayer).bindPopup(popup);
+      L.marker([lat,lng],{icon:icon}).addTo(markerLayer)
+        .bindPopup('<div class="popup-title">'+esc(lbl)+'</div><div class="popup-coords">'+lat.toFixed(5)+', '+lng.toFixed(5)+'</div>'+(extra?'<div class="popup-fields">'+extra+'</div>':''));
     });
-    if (markerLayer.getLayers().length>0) {
-      try { leafletMap.fitBounds(markerLayer.getBounds(),{padding:[40,40]}); } catch(_) {}
+    if(markerLayer.getLayers().length>0){
+      try{leafletMap.fitBounds(markerLayer.getBounds(),{padding:[40,40]});}catch(_){}
     }
   }
 
   // ── global handlers ───────────────────────────────────────────────────
-  window.switchTab = function(tab) {
-    var isTable = tab==='table';
-    document.getElementById('tabTable').classList.toggle('active', isTable);
-    document.getElementById('tabMap').classList.toggle('active', !isTable);
-    document.getElementById('tableView').classList.toggle('active', isTable);
-    document.getElementById('mapView').classList.toggle('active', !isTable);
-    if (!isTable) { setTimeout(function(){ initMap(); if(leafletMap) leafletMap.invalidateSize(); }, 60); }
+  window.switchTab=function(tab){
+    var iT=tab==='table';
+    document.getElementById('tabTable').classList.toggle('active',iT);
+    document.getElementById('tabMap').classList.toggle('active',!iT);
+    document.getElementById('tableView').classList.toggle('active',iT);
+    document.getElementById('mapView').classList.toggle('active',!iT);
+    if(!iT){setTimeout(function(){initMap();if(leafletMap)leafletMap.invalidateSize();},60);}
   };
+  window.onSearch=function(val){filterText=val;renderTable();if(leafletMap)renderMarkers();};
+  window.sortBy=function(col){sortDir=sortCol===col?sortDir*-1:1;sortCol=col;renderTable();};
 
-  window.onSearch = function(val) { filterText=val; renderTable(); if(leafletMap) renderMarkers(); };
-
-  window.sortBy = function(col) {
-    sortDir = sortCol===col ? sortDir*-1 : 1; sortCol=col; renderTable();
-  };
-
-  window.selectRow = function(idx) {
-    selectedRow = rows[idx];
-    document.getElementById('detailTitle').textContent = getLabel(selectedRow);
-    document.getElementById('detailGrid').innerHTML = headers.map(function(h) {
+  window.selectRow=function(idx){
+    selectedRow=rows[idx];
+    document.getElementById('detailTitle').textContent=getLabel(selectedRow);
+    document.getElementById('detailGrid').innerHTML=headers.map(function(h){
       return '<div class="detail-cell"><div class="detail-key">'+esc(h)+'</div><div class="detail-val">'+esc(selectedRow[h]||'—')+'</div></div>';
     }).join('');
-    var fb = document.getElementById('reviewFeedback');
-    if (fb) { fb.className='review-feedback'; fb.textContent=''; }
-    var ci = document.getElementById('commentInput');
-    if (ci) ci.value='';
+    var fb=document.getElementById('reviewFeedback');
+    if(fb){fb.className='review-feedback';fb.textContent='';}
+    var ci=document.getElementById('commentInput');
+    if(ci) ci.value='';
     renderDetailReviews(selectedRow);
     document.getElementById('detailPanel').classList.add('open');
     renderTable();
   };
 
-  window.closeDetail = function() {
-    selectedRow = null;
+  window.closeDetail=function(){
+    selectedRow=null;
     document.getElementById('detailPanel').classList.remove('open');
     renderTable();
   };
 
-  window.submitAction = function(action) {
-    if (!selectedRow) return;
-    var ci  = document.getElementById('commentInput');
-    var rni = document.getElementById('reviewerName');
-    var fb  = document.getElementById('reviewFeedback');
-    var comment  = ci  ? ci.value.trim()  : '';
-    var reviewer = rni ? rni.value.trim() : '';
-
-    if (action==='comment' && !comment) {
+  window.submitAction=function(action){
+    if(!selectedRow) return;
+    var ci =document.getElementById('commentInput');
+    var rni=document.getElementById('reviewerName');
+    var fb =document.getElementById('reviewFeedback');
+    var comment =ci ?ci.value.trim() :'';
+    var reviewer=rni?rni.value.trim():'';
+    if(action==='comment'&&!comment){
       fb.textContent='Please write a comment before submitting.';
-      fb.className='review-feedback visible err'; return;
+      fb.className='review-feedback visible err';return;
     }
+    var btns=['btnApprove','btnReject','btnFlag','btnComment'];
+    btns.forEach(function(id){var b=document.getElementById(id);if(b)b.disabled=true;});
+    if(ci) ci.disabled=true;
+    if(rni)rni.disabled=true;
+    if(fb){fb.className='review-feedback';fb.textContent='';}
 
-    var btns = ['btnApprove','btnReject','btnFlag','btnComment'];
-    btns.forEach(function(id){ var b=document.getElementById(id); if(b) b.disabled=true; });
-    if (ci)  ci.disabled  = true;
-    if (rni) rni.disabled = true;
-    if (fb)  { fb.className='review-feedback'; fb.textContent=''; }
-
-    postReview(selectedRow, action, comment, reviewer, function(ok, errMsg) {
-      btns.forEach(function(id){ var b=document.getElementById(id); if(b) b.disabled=false; });
-      if (ci)  { ci.disabled=false;  ci.value=''; }
-      if (rni)   rni.disabled=false;
-      if (ok) {
+    postReview(selectedRow,action,comment,reviewer,function(ok,errMsg){
+      btns.forEach(function(id){var b=document.getElementById(id);if(b)b.disabled=false;});
+      if(ci){ci.disabled=false;ci.value='';}
+      if(rni)rni.disabled=false;
+      if(ok){
         fb.textContent='Review submitted successfully.';
         fb.className='review-feedback visible ok';
         renderDetailReviews(selectedRow);
         renderTable();
-        if (leafletMap) renderMarkers();
+        if(leafletMap)renderMarkers();
+        // Update topbar count
+        var ss=document.getElementById('sheetStatus');
+        if(ss){
+          var total=Object.keys(reviewCache).reduce(function(n,k){return n+reviewCache[k].length;},0);
+          ss.className='sheet-status ok';
+          ss.textContent=total+' review'+(total===1?'':'s');
+        }
       } else {
-        fb.textContent='Failed to submit: ' + (errMsg||'unknown error');
+        fb.textContent='Failed to submit: '+(errMsg||'unknown error');
         fb.className='review-feedback visible err';
       }
     });
   };
 
   // ── initial load ──────────────────────────────────────────────────────
-  renderTable(); // show data immediately
+  renderTable();
 
-  fetchReviews(function(ok) {
-    var el = document.getElementById('sheetStatus');
-    if (!SHEET_READY) return;
-    if (!el) return;
-    if (ok) {
-      var total = Object.keys(reviewCache).reduce(function(n,k){ return n+reviewCache[k].length; }, 0);
+  fetchReviews(function(ok){
+    var el=document.getElementById('sheetStatus');
+    if(!SHEET_READY||!el) return;
+    if(ok){
+      var total=Object.keys(reviewCache).reduce(function(n,k){return n+reviewCache[k].length;},0);
       el.className='sheet-status ok';
-      el.textContent = total + ' review' + (total===1?'':'s');
+      el.textContent=total+' review'+(total===1?'':'s');
     } else {
       el.className='sheet-status err';
-      el.textContent='sheet error';
+      el.textContent='sheet error — check URL & deployment';
     }
     renderTable();
-    if (leafletMap) renderMarkers();
+    if(leafletMap)renderMarkers();
   });
 
 })();
