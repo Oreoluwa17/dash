@@ -273,7 +273,12 @@
     function i32LE(v){var b=new ArrayBuffer(4);new DataView(b).setInt32(0,v,true);return new Uint8Array(b);}
     function i32BE(v){var b=new ArrayBuffer(4);new DataView(b).setInt32(0,v,false);return new Uint8Array(b);}
     function f64LE(v){var b=new ArrayBuffer(8);new DataView(b).setFloat64(0,v,true);return new Uint8Array(b);}
-    function padStr(s,n){var r=new Uint8Array(n);var src=new TextEncoder().encode(String(s).slice(0,n));r.set(src);return r;}
+    function padStr(s,n){
+      var r=new Uint8Array(n);
+      var src=new TextEncoder().encode(String(s));
+      r.set(src.slice(0,n)); // truncate by bytes not chars — safe for multi-byte UTF-8
+      return r;
+    }
     function concat(arrs){var t=arrs.reduce(function(s,a){return s+a.length;},0);var o=new Uint8Array(t);var p=0;arrs.forEach(function(a){o.set(a,p);p+=a.length;});return o;}
 
     var chunks=[];
@@ -299,8 +304,8 @@
     cols.forEach(function(col){
       var varName=col.name.replace(/[^A-Za-z0-9_]/g,'_').slice(0,8);
       while(varName.length<8)varName+=' ';
-      var labelBytes=new TextEncoder().encode(col.varLabel);
-      var labelLen=labelBytes.length;
+      var labelBytes=new TextEncoder().encode(col.varLabel.slice(0,120));
+      var labelLen=labelBytes.length;  // byte count — correct for SPSS
       var labelPad=Math.ceil(labelLen/4)*4;
 
       var rec=new Uint8Array(32);
@@ -329,12 +334,12 @@
       labelEntries.forEach(function(code){
         var numCode=parseFloat(code);
         chunks.push(f64LE(isNaN(numCode)?0:numCode));
-        var txt=String(col.valueLabels[code]).slice(0,60);
-        var txtLen=txt.length;
+        var txtBytes=new TextEncoder().encode(String(col.valueLabels[code])).slice(0,60);
+        var txtLen=txtBytes.length;          // byte count — correct for SPSS
         var txtPad=Math.ceil((txtLen+1)/8)*8;
         var tb=new Uint8Array(txtPad);
-        tb[0]=txtLen; // length byte
-        tb.set(new TextEncoder().encode(txt),1);
+        tb[0]=txtLen;
+        tb.set(txtBytes,1);
         chunks.push(tb);
       });
       // type 4: associates labels with variable index (1-based)
