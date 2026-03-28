@@ -246,136 +246,157 @@
     downloadBlob(new Blob([lines.join('\r\n')],{type:'text/csv'}),(title||'board').replace(/\s+/g,'_')+'.csv');
   }
 
-  // ── 2. SPSS .sav with coded values & value labels ─────────────────────
+  // ── 2. SPSS .sav — matches IBM SPSS format with compression & long strings ──
   function exportSPSS(){
     var data=getSorted(getFiltered());
     if(!data.length){alert('No data to export.');return;}
 
-    // Build per-column info using scheme where available
+    var STR_WIDTH=64,STR_SEGS=8,BIAS=100.0,SYSMIS=-1.7976931348623157e308;
+
+    function i32LE(v){var b=new ArrayBuffer(4);new DataView(b).setInt32(0,v>>>0,true);return new Uint8Array(b);}
+    function f64LE(v){var b=new ArrayBuffer(8);new DataView(b).setFloat64(0,v,true);return new Uint8Array(b);}
+    function padStr(s,n){var r=new Uint8Array(n);r.fill(0x20);var src=new TextEncoder().encode(String(s));r.set(src.slice(0,n));return r;}
+    function spssName(h){var n=h.replace(/[^A-Za-z0-9_@#$]/g,'_');if(/^[^A-Za-z@#$]/.test(n))n='V'+n;return n.slice(0,8).toUpperCase();}
+
     var cols=headers.map(function(h){
-      var scheme=spssScheme&&spssScheme[h];
-      var isNumeric=false,coding=null,valueLabels=null,varLabel=h;
-      if(scheme){
-        varLabel=scheme.varLabel||h;
-        if(scheme.coding&&Object.keys(scheme.coding).length){
-          isNumeric=true;coding=scheme.coding;valueLabels=scheme.valueLabels||{};
+      // Build reverse lookup: try field ID, then slug variants, then normalized prefix
+      var sc=null;
+      if(spssScheme){
+        // 1. Exact key match (field ID or pre-slugged name)
+        if(spssScheme[h]){sc=spssScheme[h];}
+        else {
+          var hLo=h.toLowerCase();
+          // 2. Try all slug variants of each scheme entry's fieldName
+          var hNorm=hLo.replace(/[^a-z0-9]/g,'').slice(0,10);
+          var bestLen=3; // minimum chars to match
+          Object.keys(spssScheme).forEach(function(k){
+            var entry=spssScheme[k];
+            if(!entry.fieldName)return;
+            var fn=entry.fieldName.toLowerCase();
+            // Slug variants
+            var slugs=[
+              fn.replace(/[^a-z0-9]/g,'_').slice(0,8),
+              fn.replace(/[^a-z0-9]/g,'_').replace(/_+/g,'_').slice(0,8),
+              fn.split(/[^a-z0-9]+/).filter(Boolean).slice(0,3).join('_').slice(0,8),
+            ];
+            if(slugs.indexOf(hLo)!==-1){sc=entry;return;}
+            // Normalized prefix fallback
+            var eNorm=fn.replace(/[^a-z0-9]/g,'').slice(0,10);
+            var matchLen=0;
+            var minLen=Math.min(hNorm.length,eNorm.length);
+            for(var i=0;i<minLen;i++){if(hNorm[i]===eNorm[i])matchLen++;else break;}
+            if(matchLen>bestLen){bestLen=matchLen;sc=entry;}
+          });
         }
       }
-      // Auto-detect numeric if no scheme
-      if(!scheme){
-        var allNum=data.every(function(r){var v=r[h];return v===''||(!isNaN(parseFloat(v))&&isFinite(v));});
-        if(allNum)isNumeric=true;
-      }
-      return {name:h,varLabel:varLabel.slice(0,120),isNumeric:isNumeric,coding:coding,valueLabels:valueLabels};
+      var isNum=false,coding=null,vLabels=null,varLabel=h;
+      if(sc){varLabel=sc.varLabel||sc.fieldName||h;if(sc.coding&&Object.keys(sc.coding).length){isNum=true;coding=sc.coding;vLabels=sc.vLabels||sc.valueLabels||{};}}
+      else{isNum=data.every(function(r){var v=r[h];return v===''||(!isNaN(parseFloat(v))&&isFinite(v));});}
+      return {h:h,varLabel:varLabel,isNum:isNum,coding:coding,vLabels:vLabels,shortName:spssName(h)};
     });
 
-    // Binary helpers
-    function i32LE(v){var b=new ArrayBuffer(4);new DataView(b).setInt32(0,v,true);return new Uint8Array(b);}
-    function i32BE(v){var b=new ArrayBuffer(4);new DataView(b).setInt32(0,v,false);return new Uint8Array(b);}
-    function f64LE(v){var b=new ArrayBuffer(8);new DataView(b).setFloat64(0,v,true);return new Uint8Array(b);}
-    function padStr(s,n){
-      var r=new Uint8Array(n);
-      var src=new TextEncoder().encode(String(s));
-      r.set(src.slice(0,n)); // truncate by bytes not chars — safe for multi-byte UTF-8
-      return r;
-    }
-    function concat(arrs){var t=arrs.reduce(function(s,a){return s+a.length;},0);var o=new Uint8Array(t);var p=0;arrs.forEach(function(a){o.set(a,p);p+=a.length;});return o;}
+    var slotCount=cols.reduce(function(s,c){return s+(c.isNum?1:STR_SEGS);},0);
+    var varSlotMap={};var slot=1;
+    cols.forEach(function(c,i){varSlotMap[i]=slot;slot+=(c.isNum?1:STR_SEGS);});
 
-    var chunks=[];
-    var now=new Date();
+    var chunks=[],now=new Date();
+    var months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-    // Record type 1: file header (176 bytes)
-    var hdr=new Uint8Array(176);
+    // Record 1: file header
+    var hdr=new Uint8Array(176);hdr.fill(0x20);
     hdr.set(new TextEncoder().encode('$FL2'),0);
-    hdr.set(padStr('CSVBoard Export',60),4);
+    hdr.set(padStr('@(#) IBM SPSS STATISTICS MS Windows 23.0.0.0',60),4);
     var hdv=new DataView(hdr.buffer);
-    hdv.setInt32(64,2,true);          // layout_code
-    hdv.setInt32(68,cols.length,true);// ncases_per_row
-    hdv.setInt32(72,0,true);          // no compression
-    hdv.setInt32(76,0,true);          // no weight
-    hdv.setInt32(80,data.length,true);// ncases
-    hdv.setFloat64(84,100.0,true);    // bias
-    var ds=String(now.getDate()).padStart(2,'0')+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][now.getMonth()]+' '+String(now.getFullYear()).slice(2);
+    hdv.setInt32(64,2,true);hdv.setInt32(68,slotCount,true);hdv.setInt32(72,1,true);
+    hdv.setInt32(76,0,true);hdv.setInt32(80,data.length,true);hdv.setFloat64(84,BIAS,true);
+    var ds=String(now.getDate()).padStart(2,'0')+' '+months[now.getMonth()]+' '+String(now.getFullYear()).slice(2);
     var ts=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0');
-    hdr.set(padStr(ds,9),92);hdr.set(padStr(ts,8),101);hdr.set(padStr('CSVBoard',64),109);
+    hdr.set(padStr(ds,9),92);hdr.set(padStr(ts,8),101);hdr.set(padStr('',64),109);
     chunks.push(hdr);
 
-    // Record type 2: variable records
+    // Records 2: variable records + string continuation records
     cols.forEach(function(col){
-      var varName=col.name.replace(/[^A-Za-z0-9_]/g,'_').slice(0,8);
-      while(varName.length<8)varName+=' ';
-      var labelBytes=new TextEncoder().encode(col.varLabel.slice(0,120));
-      var labelLen=labelBytes.length;  // byte count — correct for SPSS
-      var labelPad=Math.ceil(labelLen/4)*4;
-
-      var rec=new Uint8Array(32);
-      var rdv=new DataView(rec.buffer);
-      rdv.setInt32(0,2,true);                  // record type 2
-      rdv.setInt32(4,col.isNumeric?0:1,true);  // 0=num, 1=str(A8)
-      rdv.setInt32(8,1,true);                  // has_var_label
-      rdv.setInt32(12,0,true);                 // n_missing_values
-      // print/write format codes
-      rec[16]=col.isNumeric?5:1;rec[17]=col.isNumeric?2:0;rec[18]=8;rec[19]=0;
-      rec[20]=col.isNumeric?5:1;rec[21]=col.isNumeric?2:0;rec[22]=8;rec[23]=0;
-      rec.set(padStr(varName,8),24);
-      chunks.push(rec);
-      chunks.push(i32LE(labelLen));
-      var lb=new Uint8Array(labelPad);lb.set(labelBytes);chunks.push(lb);
+      var lb2=new TextEncoder().encode(col.varLabel).slice(0,120);
+      var ll2=lb2.length,lp2=Math.ceil(ll2/4)*4;
+      var rec=new Uint8Array(32);rec.fill(0);var rdv=new DataView(rec.buffer);
+      rdv.setInt32(0,2,true);rdv.setInt32(4,col.isNum?0:STR_WIDTH,true);
+      rdv.setInt32(8,1,true);rdv.setInt32(12,0,true);
+      if(col.isNum){rec[16]=0;rec[17]=8;rec[18]=2;rec[19]=0;rec[20]=0;rec[21]=8;rec[22]=2;rec[23]=0;}
+      else{rec[16]=0;rec[17]=STR_WIDTH;rec[18]=1;rec[19]=0;rec[20]=0;rec[21]=STR_WIDTH;rec[22]=1;rec[23]=0;}
+      rec.set(padStr(col.shortName,8),24);
+      chunks.push(rec);chunks.push(i32LE(ll2));
+      var lb3=new Uint8Array(lp2);lb3.fill(0x20);lb3.set(lb2);chunks.push(lb3);
+      if(!col.isNum){
+        for(var s=1;s<STR_SEGS;s++){
+          var cont=new Uint8Array(32);cont.fill(0);var cdv=new DataView(cont.buffer);
+          cdv.setInt32(0,2,true);cdv.setInt32(4,-1,true);cdv.setInt32(8,0,true);cdv.setInt32(12,0,true);
+          cont[16]=0;cont[17]=8;cont[18]=1;cont[19]=0;cont[20]=0;cont[21]=8;cont[22]=1;cont[23]=0;
+          cont.set(padStr('',8),24);chunks.push(cont);
+        }
+      }
     });
 
-    // Record type 3: value labels (one record per coded variable)
-    // Then record type 4: variable index for the labels
-    cols.forEach(function(col,colIdx){
-      if(!col.valueLabels||!Object.keys(col.valueLabels).length)return;
-      var labelEntries=Object.keys(col.valueLabels);
-      // type 3 header
-      chunks.push(i32LE(3));
-      chunks.push(i32LE(labelEntries.length));
-      labelEntries.forEach(function(code){
-        var numCode=parseFloat(code);
-        chunks.push(f64LE(isNaN(numCode)?0:numCode));
-        var txtBytes=new TextEncoder().encode(String(col.valueLabels[code])).slice(0,60);
-        var txtLen=txtBytes.length;          // byte count — correct for SPSS
-        var txtPad=Math.ceil((txtLen+1)/8)*8;
-        var tb=new Uint8Array(txtPad);
-        tb[0]=txtLen;
-        tb.set(txtBytes,1);
-        chunks.push(tb);
+    // Records 3+4: value labels
+    cols.forEach(function(col,ci){
+      if(!col.vLabels||!Object.keys(col.vLabels).length)return;
+      var entries=Object.keys(col.vLabels);
+      chunks.push(i32LE(3));chunks.push(i32LE(entries.length));
+      entries.forEach(function(code){
+        chunks.push(f64LE(parseFloat(code)||0));
+        var lb4=new TextEncoder().encode(String(col.vLabels[code])).slice(0,60);
+        var llen=lb4.length,lpad=Math.ceil((llen+1)/8)*8;
+        var tb=new Uint8Array(lpad);tb.fill(0x20);tb[0]=llen;tb.set(lb4,1);chunks.push(tb);
       });
-      // type 4: associates labels with variable index (1-based)
-      chunks.push(i32LE(4));
-      chunks.push(i32LE(1));        // number of variables
-      chunks.push(i32LE(colIdx+1)); // variable index (1-based)
+      chunks.push(i32LE(4));chunks.push(i32LE(1));chunks.push(i32LE(varSlotMap[ci]));
     });
 
-    // Record type 999: end of dictionary
+    // Record 7 sub 3: machine integer info
+    chunks.push(i32LE(7));chunks.push(i32LE(3));chunks.push(i32LE(4));chunks.push(i32LE(8));
+    [720,1,2,1,0,1,0,1252].forEach(function(v){chunks.push(i32LE(v));});
+    // Record 7 sub 4: machine float info
+    chunks.push(i32LE(7));chunks.push(i32LE(4));chunks.push(i32LE(8));chunks.push(i32LE(3));
+    chunks.push(f64LE(SYSMIS));chunks.push(f64LE(BIAS));chunks.push(f64LE(0));
+    // Record 7 sub 11: variable display
+    chunks.push(i32LE(7));chunks.push(i32LE(11));chunks.push(i32LE(4));chunks.push(i32LE(slotCount*3));
+    cols.forEach(function(col){var n=col.isNum?1:STR_SEGS;for(var s=0;s<n;s++){chunks.push(i32LE(1));chunks.push(i32LE(col.isNum?8:STR_WIDTH));chunks.push(i32LE(0));}});
+    // Record 7 sub 13: long variable names
+    var lnStr=cols.map(function(c){return c.shortName+'='+c.h;}).join('\t');
+    var lnB=new TextEncoder().encode(lnStr);
+    chunks.push(i32LE(7));chunks.push(i32LE(13));chunks.push(i32LE(1));chunks.push(i32LE(lnB.length));chunks.push(lnB);
+    // Record 999: end of dictionary
     chunks.push(i32LE(999));chunks.push(i32LE(0));
 
-    // Data: write each case
-    // SYSMIS = -1.7976931348623157e+308
-    var SYSMIS=-1.7976931348623157e+308;
+    // DATA: bytecode compression (opcode block of 8, overflow f64s follow)
+    var opcodes=[],overflow=[];
     data.forEach(function(row){
       cols.forEach(function(col){
-        var raw=String(row[col.name]||'').trim();
-        if(col.isNumeric){
+        var raw=String(row[col.h]||'').trim();
+        if(col.isNum){
           var numVal=SYSMIS;
           if(col.coding){
-            // Try exact match first, then case-insensitive
             if(col.coding.hasOwnProperty(raw)){numVal=col.coding[raw];}
-            else{
-              var rawLo=raw.toLowerCase();
-              var found=Object.keys(col.coding).find(function(k){return k.toLowerCase()===rawLo;});
-              numVal=found!==undefined?col.coding[found]:SYSMIS;
-            }
-          } else {
-            var n=parseFloat(raw);numVal=isNaN(n)?SYSMIS:n;
-          }
-          chunks.push(f64LE(numVal));
+            else{var lo=raw.toLowerCase();var k=Object.keys(col.coding).find(function(k){return k.toLowerCase()===lo;});numVal=k!==undefined?col.coding[k]:SYSMIS;}
+          } else {var n=parseFloat(raw);numVal=isNaN(n)?SYSMIS:n;}
+          if(numVal===SYSMIS){opcodes.push(255);}
+          else{var comp=numVal+BIAS;if(Number.isInteger(numVal)&&comp>=1&&comp<=251){opcodes.push(Math.round(comp));}else{opcodes.push(253);overflow.push(f64LE(numVal));}}
         } else {
-          chunks.push(padStr(raw,8));
+          var sb=new TextEncoder().encode(raw).slice(0,STR_WIDTH);
+          var pd=new Uint8Array(STR_WIDTH);pd.fill(0x20);pd.set(sb);
+          for(var s=0;s<STR_SEGS;s++){
+            var seg=pd.slice(s*8,(s+1)*8);
+            if(seg.every(function(b){return b===0x20;})){opcodes.push(254);}
+            else{opcodes.push(253);overflow.push(seg);}
+          }
         }
       });
     });
+    var oi=0;
+    for(var i=0;i<opcodes.length;i+=8){
+      var block=new Uint8Array(8);
+      for(var j=0;j<8;j++)block[j]=(i+j<opcodes.length)?opcodes[i+j]:0;
+      chunks.push(block);
+      for(var j=0;j<8;j++){var op=(i+j<opcodes.length)?opcodes[i+j]:0;if(op===253)chunks.push(overflow[oi++]);}
+    }
 
     var total=chunks.reduce(function(s,c){return s+c.length;},0);
     var out=new Uint8Array(total);var off=0;
