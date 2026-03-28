@@ -312,6 +312,8 @@
     var ds=String(now.getDate()).padStart(2,'0')+' '+months[now.getMonth()]+' '+String(now.getFullYear()).slice(2);
     var ts=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0');
     hdr.set(padStr(ds,9),92);hdr.set(padStr(ts,8),101);hdr.set(padStr('',64),109);
+    // bytes 173-175 MUST be 0x00 (null) per SPSS spec — not spaces
+    hdr[173]=0;hdr[174]=0;hdr[175]=0;
     chunks.push(hdr);
 
     // Records 2: variable records + string continuation records
