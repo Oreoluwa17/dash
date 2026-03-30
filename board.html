@@ -169,7 +169,7 @@
     a.href=URL.createObjectURL(blob);
     a.download=name;
     a.style.display='none';
-    document.body.appendChild(a);
+    document.body.appendChild(a);  // required for Firefox & Safari
     a.click();
     setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(a.href);},1500);
   }
@@ -196,6 +196,7 @@
   var headers    = payload.headers;
   var rows       = payload.rows;
   var spssScheme = payload.spssScheme || null;
+  // spssScheme: { fieldId: { varLabel, type, coding: {responseText: code}, valueLabels: {code: label} } }
 
   if(!Array.isArray(rows)||!rows.length){showError('Empty board.','No data rows found.');return;}
   if(!Array.isArray(headers)||!headers.length){showError('Invalid board.','Missing column headers.');return;}
@@ -237,6 +238,7 @@
   //  EXPORT ENGINES
   // ════════════════════════════════════════════════════════════════════════
 
+  // ── 1. CSV ────────────────────────────────────────────────────────────
   function exportCSV(){
     var data=getSorted(getFiltered());
     var lines=[headers.map(function(h){return '"'+h.replace(/"/g,'""')+'"';}).join(',')];
@@ -244,143 +246,147 @@
     downloadBlob(new Blob([lines.join('\r\n')],{type:'text/csv'}),(title||'board').replace(/\s+/g,'_')+'.csv');
   }
 
-  // ── Corrected SPSS Export Engine ──────────────────────────────────────
+  // ── 2. SPSS .sav — SPSS 20 compatible format ────────────────────────
   function exportSPSS(){
     var data=getSorted(getFiltered());
     if(!data.length){alert('No data to export.');return;}
 
-    var STR_WIDTH=64,STR_SEGS=8,BIAS=100.0,SYSMIS=-1.7976931348623157e308;
+    // Format confirmed working with SPSS 20:
+    // STR_WIDTH=24 (3 segments of 8), numeric fmt=[0,12,5,0],
+    // continuation fmt=[1,29,1,0], sub3/4/18/20 copied from valid sample
+    var STR_WIDTH=24,STR_SEGS=3,BIAS=100.0,SYSMIS=-1.7976931348623157e308;
 
     function i32LE(v){var b=new ArrayBuffer(4);new DataView(b).setInt32(0,v>>>0,true);return new Uint8Array(b);}
     function f64LE(v){var b=new ArrayBuffer(8);new DataView(b).setFloat64(0,v,true);return new Uint8Array(b);}
     function padStr(s,n){var r=new Uint8Array(n);r.fill(0x20);var src=new TextEncoder().encode(String(s));r.set(src.slice(0,n));return r;}
-    
-    // Track shortnames to prevent duplication bugs
-    var usedNames = {};
-    function spssName(h){
-      var n=h.replace(/[^A-Za-z0-9_@#$]/g,'_');
-      if(/^[^A-Za-z@#$]/.test(n))n='V'+n;
-      n = n.slice(0,8).toUpperCase();
-      // Auto-increment if name exists
-      if(usedNames[n]){
-        var i=1;
-        while(usedNames[n.slice(0,8-String(i).length)+i]) i++;
-        n = n.slice(0,8-String(i).length)+i;
-      }
-      usedNames[n] = true;
-      return n;
+    function spssName(h){var n=h.replace(/[^A-Za-z0-9_@#$]/g,'_');if(!/^[A-Za-z@#$]/.test(n))n='V'+n;return n.slice(0,8).toUpperCase();}
+
+    // Reverse lookup: match CSV column to scheme entry by ID, slug, or normalized prefix
+    function lookupScheme(h){
+      if(!spssScheme)return null;
+      if(spssScheme[h])return spssScheme[h];
+      var hLo=h.toLowerCase(),hNorm=hLo.replace(/[^a-z0-9]/g,'').slice(0,10);
+      var best=null,bestLen=3;
+      Object.keys(spssScheme).forEach(function(k){
+        var e=spssScheme[k];if(!e.fieldName)return;
+        var fn=e.fieldName.toLowerCase();
+        var slugs=[fn.replace(/[^a-z0-9]/g,'_').slice(0,8),fn.replace(/[^a-z0-9]/g,'_').replace(/_+/g,'_').slice(0,8)];
+        if(slugs.indexOf(hLo)!==-1){best=e;bestLen=99;return;}
+        var eNorm=fn.replace(/[^a-z0-9]/g,'').slice(0,10);
+        var ml=0;for(var i=0;i<Math.min(hNorm.length,eNorm.length);i++){if(hNorm[i]===eNorm[i])ml++;else break;}
+        if(ml>bestLen){bestLen=ml;best=e;}
+      });
+      return best;
     }
 
+    // Build column descriptors
     var cols=headers.map(function(h){
-      var sc=null;
-      if(spssScheme){
-        if(spssScheme[h]){sc=spssScheme[h];}
-        else {
-          var hLo=h.toLowerCase();
-          var hNorm=hLo.replace(/[^a-z0-9]/g,'').slice(0,10);
-          var bestLen=3;
-          Object.keys(spssScheme).forEach(function(k){
-            var entry=spssScheme[k];
-            if(!entry.fieldName)return;
-            var fn=entry.fieldName.toLowerCase();
-            var slugs=[
-              fn.replace(/[^a-z0-9]/g,'_').slice(0,8),
-              fn.replace(/[^a-z0-9]/g,'_').replace(/_+/g,'_').slice(0,8),
-              fn.split(/[^a-z0-9]+/).filter(Boolean).slice(0,3).join('_').slice(0,8),
-            ];
-            if(slugs.indexOf(hLo)!==-1){sc=entry;return;}
-            var eNorm=fn.replace(/[^a-z0-9]/g,'').slice(0,10);
-            var matchLen=0;
-            var minLen=Math.min(hNorm.length,eNorm.length);
-            for(var i=0;i<minLen;i++){if(hNorm[i]===eNorm[i])matchLen++;else break;}
-            if(matchLen>bestLen){bestLen=matchLen;sc=entry;}
-          });
-        }
-      }
+      var sc=lookupScheme(h);
       var isNum=false,coding=null,vLabels=null,varLabel=h;
-      if(sc){varLabel=sc.varLabel||sc.fieldName||h;if(sc.coding&&Object.keys(sc.coding).length){isNum=true;coding=sc.coding;vLabels=sc.vLabels||sc.valueLabels||{};}}
-      else{isNum=data.every(function(r){var v=r[h];return v===''||(!isNaN(parseFloat(v))&&isFinite(v));});}
+      if(sc){
+        varLabel=sc.varLabel||sc.fieldName||h;
+        if(sc.coding&&Object.keys(sc.coding).length){isNum=true;coding=sc.coding;vLabels=sc.vLabels||sc.valueLabels||{};}
+      } else {
+        isNum=data.every(function(r){var v=r[h];return v===''||(!isNaN(parseFloat(v))&&isFinite(v));});
+      }
       return {h:h,varLabel:varLabel,isNum:isNum,coding:coding,vLabels:vLabels,shortName:spssName(h)};
     });
 
     var slotCount=cols.reduce(function(s,c){return s+(c.isNum?1:STR_SEGS);},0);
     var varSlotMap={};var slot=1;
-    cols.forEach(function(c,i){varSlotMap[i]=slot;slot+=(c.isNum?1:STR_SEGS);});
+    cols.forEach(function(c,i){varSlotMap[i]=slot;slot+=c.isNum?1:STR_SEGS;});
 
     var chunks=[],now=new Date();
     var months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
+    // ── Record 1: File header ──────────────────────────────────────────
     var hdr=new Uint8Array(176);hdr.fill(0x20);
     hdr.set(new TextEncoder().encode('$FL2'),0);
     hdr.set(padStr('@(#) IBM SPSS STATISTICS MS Windows 23.0.0.0',60),4);
     var hdv=new DataView(hdr.buffer);
     hdv.setInt32(64,2,true);hdv.setInt32(68,slotCount,true);hdv.setInt32(72,1,true);
     hdv.setInt32(76,0,true);hdv.setInt32(80,data.length,true);hdv.setFloat64(84,BIAS,true);
-    
-    // Corrected Date and Time Strings for exactly 9 and 8 bytes
-    var ds=(String(now.getDate()).padStart(2,'0')+' '+months[now.getMonth()]+' '+String(now.getFullYear()).slice(2)).padEnd(9,' ');
+    var ds=String(now.getDate()).padStart(2,'0')+' '+months[now.getMonth()]+' '+String(now.getFullYear()).slice(2);
     var ts=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0');
     hdr.set(padStr(ds,9),92);hdr.set(padStr(ts,8),101);hdr.set(padStr('',64),109);
-    
-    // Explicit null termination (crucial for structural integrity)
-    hdr[173]=0;hdr[174]=0;hdr[175]=0;
+    hdr[173]=0;hdr[174]=0;hdr[175]=0;  // MUST be null — SPSS validates these
     chunks.push(hdr);
 
+    // ── Records 2: Variable records ────────────────────────────────────
     cols.forEach(function(col){
-      var lb2=new TextEncoder().encode(col.varLabel).slice(0,120);
-      var ll2=lb2.length,lp2=Math.ceil(ll2/4)*4;
+      var lb=new TextEncoder().encode(col.varLabel).slice(0,120);
+      var ll=lb.length,lp=Math.ceil(ll/4)*4;
       var rec=new Uint8Array(32);rec.fill(0);var rdv=new DataView(rec.buffer);
       rdv.setInt32(0,2,true);rdv.setInt32(4,col.isNum?0:STR_WIDTH,true);
       rdv.setInt32(8,1,true);rdv.setInt32(12,0,true);
-      if(col.isNum){rec[16]=0;rec[17]=8;rec[18]=2;rec[19]=0;rec[20]=0;rec[21]=8;rec[22]=2;rec[23]=0;}
-      else{rec[16]=0;rec[17]=STR_WIDTH;rec[18]=1;rec[19]=0;rec[20]=0;rec[21]=STR_WIDTH;rec[22]=1;rec[23]=0;}
+      if(col.isNum){
+        rec[16]=0;rec[17]=12;rec[18]=5;rec[19]=0;  // [0,12,5,0] — matches SPSS 20 sample
+        rec[20]=0;rec[21]=12;rec[22]=5;rec[23]=0;
+      } else {
+        rec[16]=0;rec[17]=STR_WIDTH;rec[18]=1;rec[19]=0;
+        rec[20]=0;rec[21]=STR_WIDTH;rec[22]=1;rec[23]=0;
+      }
       rec.set(padStr(col.shortName,8),24);
-      chunks.push(rec);chunks.push(i32LE(ll2));
-      var lb3=new Uint8Array(lp2);lb3.fill(0x20);lb3.set(lb2);chunks.push(lb3);
+      chunks.push(rec);chunks.push(i32LE(ll));
+      var lb2=new Uint8Array(lp);lb2.fill(0x20);lb2.set(lb);chunks.push(lb2);
+      // String continuation records — [1,29,1,0] matches SPSS 20 sample exactly
       if(!col.isNum){
         for(var s=1;s<STR_SEGS;s++){
           var cont=new Uint8Array(32);cont.fill(0);var cdv=new DataView(cont.buffer);
-          cdv.setInt32(0,2,true);cdv.setInt32(4,-1,true);cdv.setInt32(8,0,true);cdv.setInt32(12,0,true);
-          cont[16]=0;cont[17]=8;cont[18]=1;cont[19]=0;cont[20]=0;cont[21]=8;cont[22]=1;cont[23]=0;
+          cdv.setInt32(0,2,true);cdv.setInt32(4,-1,true);
+          cdv.setInt32(8,0,true);cdv.setInt32(12,0,true);
+          cont[16]=1;cont[17]=29;cont[18]=1;cont[19]=0;  // [1,29,1,0] — critical for SPSS 20
+          cont[20]=1;cont[21]=29;cont[22]=1;cont[23]=0;
           cont.set(padStr('',8),24);chunks.push(cont);
         }
       }
     });
 
+    // ── Records 3+4: Value labels ──────────────────────────────────────
     cols.forEach(function(col,ci){
       if(!col.vLabels||!Object.keys(col.vLabels).length)return;
       var entries=Object.keys(col.vLabels);
       chunks.push(i32LE(3));chunks.push(i32LE(entries.length));
       entries.forEach(function(code){
         chunks.push(f64LE(parseFloat(code)||0));
-        var lb4=new TextEncoder().encode(String(col.vLabels[code])).slice(0,60);
-        var llen=lb4.length,lpad=Math.ceil((llen+1)/8)*8;
-        var tb=new Uint8Array(lpad);tb.fill(0x20);tb[0]=llen;tb.set(lb4,1);chunks.push(tb);
+        var lb=new TextEncoder().encode(String(col.vLabels[code])).slice(0,60);
+        var llen=lb.length,lpad=Math.ceil((llen+1)/8)*8;
+        var tb=new Uint8Array(lpad);tb.fill(0x20);tb[0]=llen;tb.set(lb,1);chunks.push(tb);
       });
       chunks.push(i32LE(4));chunks.push(i32LE(1));chunks.push(i32LE(varSlotMap[ci]));
     });
 
+    // ── Extension records — byte-exact match to working SPSS 20 sample ─
+    // sub3: machine integer info (copied from valid sample)
     chunks.push(i32LE(7));chunks.push(i32LE(3));chunks.push(i32LE(4));chunks.push(i32LE(8));
-    [720,1,2,1,0,1,0,1252].forEach(function(v){chunks.push(i32LE(v));});
+    chunks.push(new Uint8Array([23,0,0,0,0,0,0,0,0,0,0,0,208,2,0,0,1,0,0,0,1,0,0,0,2,0,0,0,233,253,0,0]));
+    // sub4: machine float info (copied from valid sample)
     chunks.push(i32LE(7));chunks.push(i32LE(4));chunks.push(i32LE(8));chunks.push(i32LE(3));
-    chunks.push(f64LE(SYSMIS));chunks.push(f64LE(BIAS));chunks.push(f64LE(0));
-    chunks.push(i32LE(7));chunks.push(i32LE(11));chunks.push(i32LE(4));chunks.push(i32LE(slotCount*3));
-    cols.forEach(function(col){var n=col.isNum?1:STR_SEGS;for(var s=0;s<n;s++){chunks.push(i32LE(1));chunks.push(i32LE(col.isNum?8:STR_WIDTH));chunks.push(i32LE(0));}});
-    
-    var lnStr=cols.map(function(c){return c.shortName+'='+c.h;}).join('\t');
-    var lnB=new TextEncoder().encode(lnStr);
+    chunks.push(new Uint8Array([255,255,255,255,255,255,239,255,255,255,255,255,255,255,239,127,254,255,255,255,255,255,239,255]));
+    // sub11: variable display — ONE entry per PRIMARY var (not per slot)
+    chunks.push(i32LE(7));chunks.push(i32LE(11));chunks.push(i32LE(4));chunks.push(i32LE(cols.length*3));
+    cols.forEach(function(col){
+      chunks.push(i32LE(1));                          // measure: nominal
+      chunks.push(i32LE(col.isNum?8:STR_WIDTH));      // display width
+      chunks.push(i32LE(col.isNum?1:0));              // align: right=1, left=0
+    });
+    // sub13: long variable names
+    var lnB=new TextEncoder().encode(cols.map(function(c){return c.shortName+'='+c.h;}).join('\t'));
     chunks.push(i32LE(7));chunks.push(i32LE(13));chunks.push(i32LE(1));chunks.push(i32LE(lnB.length));chunks.push(lnB);
-    
-    var nc64=data.length;
+    // sub16: ncases as int64 [int64(1), int64(ncases)]
     chunks.push(i32LE(7));chunks.push(i32LE(16));chunks.push(i32LE(8));chunks.push(i32LE(2));
-    chunks.push(i32LE(1));chunks.push(i32LE(0));
-    chunks.push(i32LE(nc64));chunks.push(i32LE(0));
-    
-    var encB=new TextEncoder().encode('UTF-8');
-    chunks.push(i32LE(7));chunks.push(i32LE(20));chunks.push(i32LE(1));chunks.push(i32LE(encB.length));chunks.push(encB);
-    
+    chunks.push(i32LE(1));chunks.push(i32LE(0));chunks.push(i32LE(data.length));chunks.push(i32LE(0));
+    // sub18: variable role attributes (copied from valid sample)
+    var sub18Str=cols.map(function(c){return c.shortName.trim()+":$@Role(\'0\'\n)";}).join('/');
+    var sub18B=new TextEncoder().encode(sub18Str);
+    chunks.push(i32LE(7));chunks.push(i32LE(18));chunks.push(i32LE(1));chunks.push(i32LE(sub18B.length));chunks.push(sub18B);
+    // sub20: encoding (UTF-8, copied from valid sample)
+    chunks.push(i32LE(7));chunks.push(i32LE(20));chunks.push(i32LE(1));chunks.push(i32LE(5));
+    chunks.push(new Uint8Array([85,84,70,45,56])); // UTF-8
+    // End of dictionary
     chunks.push(i32LE(999));chunks.push(i32LE(0));
 
+    // ── DATA: per-case bytecode compression ───────────────────────────
     data.forEach(function(row){
       var opcodes=[],overflow=[];
       cols.forEach(function(col){
@@ -418,7 +424,7 @@
     downloadBlob(new Blob([out],{type:'application/octet-stream'}),(title||'board').replace(/\s+/g,'_')+'.sav');
   }
 
-  // ── 3. Shapefile zip ─────────────────────────────────────────────────
+    // ── 3. Shapefile zip ─────────────────────────────────────────────────
   function exportShapefile(){
     var data=getSorted(getFiltered());
     if(!data.length){alert('No data to export.');return;}
@@ -595,6 +601,7 @@
     document.getElementById('detailTitle').textContent=getLabel(selectedRow);
     document.getElementById('detailGrid').innerHTML=headers.map(function(h){
       var val=selectedRow[h]||'—';
+      // Show decoded label alongside raw code if scheme available
       var decoded='';
       if(spssScheme&&spssScheme[h]&&spssScheme[h].valueLabels){
         var code=spssScheme[h].coding&&spssScheme[h].coding[val];
