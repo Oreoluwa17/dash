@@ -1,1 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CSV Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f8f7f4; --surface: #ffffff; --border: #e4e2db; --border-strong: #c8c5bb;
+    --text-primary: #1a1916; --text-secondary: #6b6860; --text-hint: #a09d96;
+    --accent-bg: #1a1916; --accent-text: #f8f7f4;
+    --radius: 10px; --radius-sm: 6px;
+    --header-h: 56px; --tabs-h: 44px; --toolbar-h: 46px;
+    --c-approve: #2d6a4f; --c-approve-bg: #eaf4ef; --c-approve-border: #b7dfcc;
+    --c-reject: #9b2c2c;  --c-reject-bg: #fdf0f0;  --c-reject-border: #f5c6c6;
+    --c-flag: #92400e;    --c-flag-bg: #fef3e2;    --c-flag-border: #f9d8a0;
+    --c-comment: #1e3a8a; --c-comment-bg: #eff6ff;  --c-comment-border: #bfdbfe;
+  }
+  html, body { height: 100%; overflow: hidden; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text-primary); display: flex; flex-direction: column; }
 
+  .topbar { height: var(--header-h); background: var(--surface); border-bottom: 0.5px solid var(--border); display: flex; align-items: center; padding: 0 20px; gap: 14px; flex-shrink: 0; }
+  .board-title { font-size: 15px; font-weight: 500; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row-count { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-hint); white-space: nowrap; }
+  .sheet-status { font-size: 12px; color: var(--text-hint); font-family: 'DM Mono', monospace; white-space: nowrap; }
+  .sheet-status.ok { color: var(--c-approve); }
+  .sheet-status.err { color: var(--c-reject); }
+
+  .export-wrap { position: relative; }
+  .export-btn { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: none; border: 0.5px solid var(--border-strong); border-radius: var(--radius-sm); font-size: 12px; font-family: 'DM Sans', sans-serif; color: var(--text-secondary); cursor: pointer; white-space: nowrap; transition: background 0.12s, color 0.12s; }
+  .export-btn:hover { background: var(--accent-bg); color: var(--accent-text); border-color: var(--accent-bg); }
+  .export-btn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .export-menu { display: none; position: absolute; right: 0; top: calc(100% + 6px); background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-sm); box-shadow: 0 4px 16px rgba(0,0,0,0.08); min-width: 210px; z-index: 100; overflow: hidden; }
+  .export-menu.open { display: block; }
+  .export-menu-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; font-size: 13px; cursor: pointer; border: none; background: none; width: 100%; text-align: left; font-family: 'DM Sans', sans-serif; color: var(--text-primary); transition: background 0.1s; }
+  .export-menu-item:hover { background: var(--bg); }
+  .fmt-icon { width: 28px; height: 22px; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-family: 'DM Mono', monospace; font-size: 9px; font-weight: 500; flex-shrink: 0; }
+  .fmt-csv  { background: #eaf4ef; color: #2d6a4f; }
+  .fmt-spss { background: #eff6ff; color: #1e3a8a; }
+  .fmt-shp  { background: #fef3e2; color: #92400e; }
+  .fmt-label { flex: 1; }
+  .fmt-desc { font-size: 11px; color: var(--text-hint); display: block; margin-top: 1px; font-family: 'DM Mono', monospace; }
+  .export-divider { height: 0.5px; background: var(--border); margin: 2px 0; }
+
+  .tabs { height: var(--tabs-h); background: var(--surface); border-bottom: 0.5px solid var(--border); display: flex; align-items: flex-end; padding: 0 20px; gap: 2px; flex-shrink: 0; }
+  .tab { padding: 8px 14px 9px; font-size: 13px; cursor: pointer; border: none; background: none; font-family: 'DM Sans', sans-serif; color: var(--text-secondary); border-bottom: 2px solid transparent; transition: color 0.12s, border-color 0.12s; display: flex; align-items: center; gap: 6px; }
+  .tab svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .tab:hover { color: var(--text-primary); }
+  .tab.active { color: var(--text-primary); font-weight: 500; border-bottom-color: var(--text-primary); }
+
+  .toolbar { height: var(--toolbar-h); padding: 0 20px; background: var(--bg); border-bottom: 0.5px solid var(--border); display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .search-wrap { position: relative; flex: 1; max-width: 340px; }
+  .search-wrap svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; stroke: var(--text-hint); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .search-input { width: 100%; padding: 6px 10px 6px 32px; font-size: 13px; font-family: 'DM Sans', sans-serif; background: var(--surface); border: 0.5px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-primary); transition: border-color 0.15s; }
+  .search-input:focus { outline: none; border-color: var(--accent-bg); }
+  .search-input::placeholder { color: var(--text-hint); }
+  .result-count { font-size: 12px; color: var(--text-hint); font-family: 'DM Mono', monospace; white-space: nowrap; }
+
+  .views { flex: 1; overflow: hidden; position: relative; }
+  .view { position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity 0.15s; }
+  .view.active { opacity: 1; pointer-events: auto; }
+
+  #tableView { overflow-y: auto; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th { position: sticky; top: 0; z-index: 2; background: var(--surface); border-bottom: 0.5px solid var(--border); text-align: left; padding: 9px 14px; font-size: 11px; font-weight: 500; font-family: 'DM Mono', monospace; color: var(--text-hint); text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap; cursor: pointer; user-select: none; }
+  thead th:hover { color: var(--text-secondary); }
+  thead th.sort-asc::after { content: ' ↑'; }
+  thead th.sort-desc::after { content: ' ↓'; }
+  thead th.th-status { cursor: default; }
+  thead th.th-status:hover { color: var(--text-hint); }
+  tbody tr { border-bottom: 0.5px solid var(--border); cursor: pointer; transition: background 0.1s; }
+  tbody tr:hover { background: var(--bg); }
+  tbody tr.highlighted { background: #fdf9ee; }
+  tbody tr.highlighted:hover { background: #faf4e0; }
+  tbody td { padding: 9px 14px; color: var(--text-primary); white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+  tbody td.coord { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text-hint); }
+  .no-results { padding: 48px 24px; text-align: center; font-size: 14px; color: var(--text-hint); }
+
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; border: 0.5px solid transparent; white-space: nowrap; }
+  .badge-approve { background: var(--c-approve-bg); color: var(--c-approve); border-color: var(--c-approve-border); }
+  .badge-reject  { background: var(--c-reject-bg);  color: var(--c-reject);  border-color: var(--c-reject-border); }
+  .badge-flag    { background: var(--c-flag-bg);    color: var(--c-flag);    border-color: var(--c-flag-border); }
+  .badge-comment { background: var(--c-comment-bg); color: var(--c-comment); border-color: var(--c-comment-border); }
+
+  #mapView { overflow: hidden; }
+  #map { width: 100%; height: 100%; }
+  .leaflet-popup-content-wrapper { border-radius: var(--radius-sm) !important; box-shadow: 0 2px 12px rgba(0,0,0,0.1) !important; border: 0.5px solid var(--border); font-family: 'DM Sans', sans-serif; font-size: 13px; }
+  .popup-title { font-weight: 500; margin-bottom: 4px; }
+  .popup-coords { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-secondary); margin-bottom: 6px; }
+  .popup-fields { font-size: 12px; line-height: 1.8; color: var(--text-secondary); }
+  .popup-fields strong { color: var(--text-primary); font-weight: 500; }
+
+  .detail-panel { position: absolute; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 0.5px solid var(--border); transform: translateY(100%); transition: transform 0.2s cubic-bezier(0.22,1,0.36,1); z-index: 10; max-height: 72%; overflow-y: auto; }
+  .detail-panel.open { transform: translateY(0); }
+  .detail-header { display: flex; align-items: center; gap: 12px; padding: 16px 20px 12px; border-bottom: 0.5px solid var(--border); position: sticky; top: 0; background: var(--surface); z-index: 1; }
+  .detail-title { font-weight: 500; font-size: 14px; flex: 1; }
+  .detail-close { background: none; border: none; cursor: pointer; color: var(--text-hint); font-size: 18px; line-height: 1; padding: 2px 6px; border-radius: 4px; }
+  .detail-close:hover { color: var(--text-primary); background: var(--bg); }
+  .detail-body { padding: 16px 20px; display: flex; flex-direction: column; gap: 20px; }
+  .detail-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+  .detail-cell { background: var(--bg); border-radius: var(--radius-sm); padding: 8px 10px; }
+  .detail-key { font-size: 10px; font-weight: 500; color: var(--text-hint); text-transform: uppercase; letter-spacing: 0.06em; font-family: 'DM Mono', monospace; margin-bottom: 3px; }
+  .detail-val { font-size: 13px; color: var(--text-primary); word-break: break-word; }
+
+  .review-section { border-top: 0.5px solid var(--border); padding-top: 16px; }
+  .review-label { font-size: 11px; font-weight: 500; color: var(--text-hint); text-transform: uppercase; letter-spacing: 0.08em; font-family: 'DM Mono', monospace; margin-bottom: 12px; }
+  .reviewer-row { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+  .reviewer-label { font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
+  .reviewer-input { flex: 1; max-width: 240px; padding: 7px 12px; font-size: 13px; font-family: 'DM Sans', sans-serif; background: var(--surface); border: 0.5px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-primary); transition: border-color 0.15s; }
+  .reviewer-input:focus { outline: none; border-color: var(--accent-bg); }
+  .reviewer-input::placeholder { color: var(--text-hint); }
+  .review-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .action-btn { display: flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer; border: 0.5px solid transparent; transition: opacity 0.12s, transform 0.1s; }
+  .action-btn:active:not(:disabled) { transform: scale(0.97); }
+  .action-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .action-btn.approve { background: var(--c-approve-bg); color: var(--c-approve); border-color: var(--c-approve-border); }
+  .action-btn.reject  { background: var(--c-reject-bg);  color: var(--c-reject);  border-color: var(--c-reject-border); }
+  .action-btn.flag    { background: var(--c-flag-bg);    color: var(--c-flag);    border-color: var(--c-flag-border); }
+  .action-btn.comment { background: var(--c-comment-bg); color: var(--c-comment); border-color: var(--c-comment-border); }
+  .action-btn:hover:not(:disabled) { opacity: 0.78; }
+  .comment-input { width: 100%; padding: 8px 12px; font-size: 13px; font-family: 'DM Sans', sans-serif; background: var(--surface); border: 0.5px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-primary); resize: vertical; min-height: 60px; transition: border-color 0.15s; }
+  .comment-input:focus { outline: none; border-color: var(--accent-bg); }
+  .comment-input::placeholder { color: var(--text-hint); }
+  .comment-input:disabled { opacity: 0.4; }
+  .review-feedback { margin-top: 10px; font-size: 13px; padding: 9px 12px; border-radius: var(--radius-sm); display: none; }
+  .review-feedback.visible { display: block; }
+  .review-feedback.ok  { background: var(--c-approve-bg); color: var(--c-approve); border: 0.5px solid var(--c-approve-border); }
+  .review-feedback.err { background: var(--c-reject-bg);  color: var(--c-reject);  border: 0.5px solid var(--c-reject-border); }
+  .reviews-list { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+  .review-item { padding: 10px 12px; border-radius: var(--radius-sm); border: 0.5px solid var(--border); background: var(--bg); }
+  .review-item-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+  .review-item-body { font-size: 12px; color: var(--text-secondary); line-height: 1.55; word-break: break-word; }
+  .review-item-meta { font-size: 11px; color: var(--text-hint); font-family: 'DM Mono', monospace; margin-left: auto; }
+  .not-configured { padding: 12px 14px; background: var(--c-flag-bg); color: var(--c-flag); border: 0.5px solid var(--c-flag-border); border-radius: var(--radius-sm); font-size: 13px; line-height: 1.6; }
+
+  .error-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 12px; text-align: center; padding: 40px; }
+  .error-state h2 { font-size: 18px; font-weight: 400; }
+  .error-state p { font-size: 14px; color: var(--text-secondary); max-width: 380px; line-height: 1.6; }
+  .error-state code { display: inline-block; margin-top: 8px; padding: 8px 12px; background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-sm); font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text-secondary); text-align: left; max-width: 100%; word-break: break-all; }
+
+  @media (max-width: 600px) {
+    .topbar, .tabs, .toolbar { padding-left: 12px; padding-right: 12px; }
+    tbody td, thead th { padding-left: 10px; padding-right: 10px; }
+    .review-actions { gap: 6px; }
+    .action-btn { padding: 6px 10px; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+(function () {
+
+  // ── config ────────────────────────────────────────────────────────────
+  var SHEET_URL = 'https://script.google.com/macros/s/AKfycbzsY17vKqxmiNyEDa_7SJf6rvSolYBdYnIbbViCAEgmXlM6OqKloH79Bpd4bG2KeULI/exec'; // paste your Apps Script /exec URL here
+  var SHEET_READY = SHEET_URL.indexOf('script.google.com') !== -1;
+
+  // ── utilities ─────────────────────────────────────────────────────────
+  function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function showError(t,d,c){document.title='CSV Board';document.body.innerHTML='<div class="error-state"><h2>'+esc(t)+'</h2><p>'+esc(d)+'</p>'+(c?'<code>'+esc(c)+'</code>':'')+' </div>';}
+  function fmtDate(iso){if(!iso)return '';try{return new Date(iso).toLocaleString();}catch(_){return iso;}}
+  function downloadBlob(blob,name){
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=name;
+    a.style.display='none';
+    document.body.appendChild(a);  // required for Firefox & Safari
+    a.click();
+    setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(a.href);},1500);
+  }
+
+  // ── decode hash ───────────────────────────────────────────────────────
+  var rawHash=window.location.hash.slice(1);
+  if(!rawHash){showError('No board data found.','Upload a CSV to generate a valid board link.');return;}
+
+  function decodeHash(hash){
+    var b64=hash.replace(/-/g,'+').replace(/_/g,'/');
+    var pad=b64.length%4;if(pad===2)b64+='==';else if(pad===3)b64+='=';
+    var binStr=atob(b64);
+    if(typeof pako!=='undefined'){try{var bytes=new Uint8Array(binStr.length);for(var i=0;i<binStr.length;i++)bytes[i]=binStr.charCodeAt(i);return JSON.parse(new TextDecoder().decode(pako.inflate(bytes)));}catch(_){}}
+    return JSON.parse(decodeURIComponent(escape(binStr)));
+  }
+
+  var payload;
+  try{payload=decodeHash(rawHash);}catch(e){showError('Could not read board data.','The link may be corrupted.',e.message);return;}
+
+  var title      = payload.title    || 'Data Board';
+  var latCol     = payload.latCol;
+  var lngCol     = payload.lngCol;
+  var labelCol   = payload.labelCol || null;
+  var headers    = payload.headers;
+  var rows       = payload.rows;
+  var spssScheme = payload.spssScheme || null;
+  // spssScheme: { fieldId: { varLabel, type, coding: {responseText: code}, valueLabels: {code: label} } }
+
+  if(!Array.isArray(rows)||!rows.length){showError('Empty board.','No data rows found.');return;}
+  if(!Array.isArray(headers)||!headers.length){showError('Invalid board.','Missing column headers.');return;}
+  document.title=title;
+
+  // ── Google Sheets reviews ─────────────────────────────────────────────
+  var reviewCache={};
+  function rowKey(row){var lat=parseFloat(row[latCol]).toFixed(5),lng=parseFloat(row[lngCol]).toFixed(5);return lat+'|'+lng+'|'+(labelCol?row[labelCol]||'':'');}
+  function buildUrl(p){return SHEET_URL+'?'+Object.keys(p).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(p[k]);}).join('&');}
+  function fetchReviews(cb){
+    if(!SHEET_READY){cb(false);return;}
+    fetch(buildUrl({action:'get'})).then(function(r){return r.json();}).then(function(data){
+      reviewCache={};
+      if(!data.ok||!Array.isArray(data.reviews)){cb(false);return;}
+      data.reviews.forEach(function(rev){var k=rev.rowKey;if(k){if(!reviewCache[k])reviewCache[k]=[];reviewCache[k].push(rev);}});
+      cb(true);
+    }).catch(function(){cb(false);});
+  }
+  function postReview(row,action,comment,reviewer,cb){
+    if(!SHEET_READY){cb(false,'Not configured.');return;}
+    var key=rowKey(row),label=getLabel(row);
+    fetch(buildUrl({action:'post',action2:action,rowKey:key,rowLabel:label,comment:comment,reviewer:reviewer||'anonymous'}))
+      .then(function(r){return r.json();}).then(function(data){
+        if(data.ok){if(!reviewCache[key])reviewCache[key]=[];reviewCache[key].push({rowKey:key,rowLabel:label,action:action,comment:comment,reviewer:reviewer||'anonymous',timestamp:data.timestamp||new Date().toISOString()});cb(true,null);}
+        else{cb(false,data.error||'Unknown error');}
+      }).catch(function(e){cb(false,e.message);});
+  }
+
+  // ── state ─────────────────────────────────────────────────────────────
+  var sortCol=null,sortDir=1,filterText='',selectedRow=null,leafletMap=null,markerLayer=null;
+  function getLabel(row){return(labelCol&&row[labelCol])?row[labelCol]:(row[latCol]+', '+row[lngCol]);}
+  function getFiltered(){if(!filterText)return rows;var q=filterText.toLowerCase();return rows.filter(function(r){return Object.keys(r).some(function(k){return String(r[k]).toLowerCase().indexOf(q)!==-1;});});}
+  function getSorted(arr){if(!sortCol)return arr;return arr.slice().sort(function(a,b){var va=a[sortCol]||'',vb=b[sortCol]||'';var na=parseFloat(va),nb=parseFloat(vb);if(!isNaN(na)&&!isNaN(nb))return(na-nb)*sortDir;return va.localeCompare(vb)*sortDir;});}
+  function latestAction(row){var k=rowKey(row),r=reviewCache[k];return(r&&r.length)?r[r.length-1]:null;}
+  function rowStatusBadge(row){var l=latestAction(row);if(!l)return '';var m={approve:'<span class="badge badge-approve">✓ Approved</span>',reject:'<span class="badge badge-reject">✕ Rejected</span>',flag:'<span class="badge badge-flag">⚑ Flagged</span>',comment:'<span class="badge badge-comment">✎ Comment</span>'};return m[l.action]||'';}
+  function markerColor(row){var l=latestAction(row);if(!l)return '#1a1916';return{approve:'#2d6a4f',reject:'#9b2c2c',flag:'#92400e',comment:'#1e3a8a'}[l.action]||'#1a1916';}
+
+  // ════════════════════════════════════════════════════════════════════════
+  //  EXPORT ENGINES
+  // ════════════════════════════════════════════════════════════════════════
+
+  // ── 1. CSV ────────────────────────────────────────────────────────────
+  function exportCSV(){
+    var data=getSorted(getFiltered());
+    var lines=[headers.map(function(h){return '"'+h.replace(/"/g,'""')+'"';}).join(',')];
+    data.forEach(function(row){lines.push(headers.map(function(h){var v=String(row[h]||'');return'"'+v.replace(/"/g,'""')+'"';}).join(','));});
+    downloadBlob(new Blob([lines.join('\r\n')],{type:'text/csv'}),(title||'board').replace(/\s+/g,'_')+'.csv');
+  }
+
+  // ── 2. SPSS .sav — matches IBM SPSS format with compression & long strings ──
+  function exportSPSS(){
+    var data=getSorted(getFiltered());
+    if(!data.length){alert('No data to export.');return;}
+
+    var STR_WIDTH=64,STR_SEGS=8,BIAS=100.0,SYSMIS=-1.7976931348623157e308;
+
+    function i32LE(v){var b=new ArrayBuffer(4);new DataView(b).setInt32(0,v>>>0,true);return new Uint8Array(b);}
+    function f64LE(v){var b=new ArrayBuffer(8);new DataView(b).setFloat64(0,v,true);return new Uint8Array(b);}
+    function padStr(s,n){var r=new Uint8Array(n);r.fill(0x20);var src=new TextEncoder().encode(String(s));r.set(src.slice(0,n));return r;}
+    function spssName(h){var n=h.replace(/[^A-Za-z0-9_@#$]/g,'_');if(/^[^A-Za-z@#$]/.test(n))n='V'+n;return n.slice(0,8).toUpperCase();}
+
+    var cols=headers.map(function(h){
+      // Build reverse lookup: try field ID, then slug variants, then normalized prefix
+      var sc=null;
+      if(spssScheme){
+        // 1. Exact key match (field ID or pre-slugged name)
+        if(spssScheme[h]){sc=spssScheme[h];}
+        else {
+          var hLo=h.toLowerCase();
+          // 2. Try all slug variants of each scheme entry's fieldName
+          var hNorm=hLo.replace(/[^a-z0-9]/g,'').slice(0,10);
+          var bestLen=3; // minimum chars to match
+          Object.keys(spssScheme).forEach(function(k){
+            var entry=spssScheme[k];
+            if(!entry.fieldName)return;
+            var fn=entry.fieldName.toLowerCase();
+            // Slug variants
+            var slugs=[
+              fn.replace(/[^a-z0-9]/g,'_').slice(0,8),
+              fn.replace(/[^a-z0-9]/g,'_').replace(/_+/g,'_').slice(0,8),
+              fn.split(/[^a-z0-9]+/).filter(Boolean).slice(0,3).join('_').slice(0,8),
+            ];
+            if(slugs.indexOf(hLo)!==-1){sc=entry;return;}
+            // Normalized prefix fallback
+            var eNorm=fn.replace(/[^a-z0-9]/g,'').slice(0,10);
+            var matchLen=0;
+            var minLen=Math.min(hNorm.length,eNorm.length);
+            for(var i=0;i<minLen;i++){if(hNorm[i]===eNorm[i])matchLen++;else break;}
+            if(matchLen>bestLen){bestLen=matchLen;sc=entry;}
+          });
+        }
+      }
+      var isNum=false,coding=null,vLabels=null,varLabel=h;
+      if(sc){varLabel=sc.varLabel||sc.fieldName||h;if(sc.coding&&Object.keys(sc.coding).length){isNum=true;coding=sc.coding;vLabels=sc.vLabels||sc.valueLabels||{};}}
+      else{isNum=data.every(function(r){var v=r[h];return v===''||(!isNaN(parseFloat(v))&&isFinite(v));});}
+      return {h:h,varLabel:varLabel,isNum:isNum,coding:coding,vLabels:vLabels,shortName:spssName(h)};
+    });
+
+    var slotCount=cols.reduce(function(s,c){return s+(c.isNum?1:STR_SEGS);},0);
+    var varSlotMap={};var slot=1;
+    cols.forEach(function(c,i){varSlotMap[i]=slot;slot+=(c.isNum?1:STR_SEGS);});
+
+    var chunks=[],now=new Date();
+    var months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    // Record 1: file header
+    var hdr=new Uint8Array(176);hdr.fill(0x20);
+    hdr.set(new TextEncoder().encode('$FL2'),0);
+    hdr.set(padStr('@(#) IBM SPSS STATISTICS MS Windows 23.0.0.0',60),4);
+    var hdv=new DataView(hdr.buffer);
+    hdv.setInt32(64,2,true);hdv.setInt32(68,slotCount,true);hdv.setInt32(72,1,true);
+    hdv.setInt32(76,0,true);hdv.setInt32(80,data.length,true);hdv.setFloat64(84,BIAS,true);
+    var ds=String(now.getDate()).padStart(2,'0')+' '+months[now.getMonth()]+' '+String(now.getFullYear()).slice(2);
+    var ts=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0');
+    hdr.set(padStr(ds,9),92);hdr.set(padStr(ts,8),101);hdr.set(padStr('',64),109);
+    // bytes 173-175 MUST be 0x00 (null) per SPSS spec — not spaces
+    hdr[173]=0;hdr[174]=0;hdr[175]=0;
+    chunks.push(hdr);
+
+    // Records 2: variable records + string continuation records
+    cols.forEach(function(col){
+      var lb2=new TextEncoder().encode(col.varLabel).slice(0,120);
+      var ll2=lb2.length,lp2=Math.ceil(ll2/4)*4;
+      var rec=new Uint8Array(32);rec.fill(0);var rdv=new DataView(rec.buffer);
+      rdv.setInt32(0,2,true);rdv.setInt32(4,col.isNum?0:STR_WIDTH,true);
+      rdv.setInt32(8,1,true);rdv.setInt32(12,0,true);
+      if(col.isNum){rec[16]=0;rec[17]=8;rec[18]=2;rec[19]=0;rec[20]=0;rec[21]=8;rec[22]=2;rec[23]=0;}
+      else{rec[16]=0;rec[17]=STR_WIDTH;rec[18]=1;rec[19]=0;rec[20]=0;rec[21]=STR_WIDTH;rec[22]=1;rec[23]=0;}
+      rec.set(padStr(col.shortName,8),24);
+      chunks.push(rec);chunks.push(i32LE(ll2));
+      var lb3=new Uint8Array(lp2);lb3.fill(0x20);lb3.set(lb2);chunks.push(lb3);
+      if(!col.isNum){
+        for(var s=1;s<STR_SEGS;s++){
+          var cont=new Uint8Array(32);cont.fill(0);var cdv=new DataView(cont.buffer);
+          cdv.setInt32(0,2,true);cdv.setInt32(4,-1,true);cdv.setInt32(8,0,true);cdv.setInt32(12,0,true);
+          cont[16]=0;cont[17]=8;cont[18]=1;cont[19]=0;cont[20]=0;cont[21]=8;cont[22]=1;cont[23]=0;
+          cont.set(padStr('',8),24);chunks.push(cont);
+        }
+      }
+    });
+
+    // Records 3+4: value labels
+    cols.forEach(function(col,ci){
+      if(!col.vLabels||!Object.keys(col.vLabels).length)return;
+      var entries=Object.keys(col.vLabels);
+      chunks.push(i32LE(3));chunks.push(i32LE(entries.length));
+      entries.forEach(function(code){
+        chunks.push(f64LE(parseFloat(code)||0));
+        var lb4=new TextEncoder().encode(String(col.vLabels[code])).slice(0,60);
+        var llen=lb4.length,lpad=Math.ceil((llen+1)/8)*8;
+        var tb=new Uint8Array(lpad);tb.fill(0x20);tb[0]=llen;tb.set(lb4,1);chunks.push(tb);
+      });
+      chunks.push(i32LE(4));chunks.push(i32LE(1));chunks.push(i32LE(varSlotMap[ci]));
+    });
+
+    // Record 7 sub 3: machine integer info
+    chunks.push(i32LE(7));chunks.push(i32LE(3));chunks.push(i32LE(4));chunks.push(i32LE(8));
+    [720,1,2,1,0,1,0,1252].forEach(function(v){chunks.push(i32LE(v));});
+    // Record 7 sub 4: machine float info
+    chunks.push(i32LE(7));chunks.push(i32LE(4));chunks.push(i32LE(8));chunks.push(i32LE(3));
+    chunks.push(f64LE(SYSMIS));chunks.push(f64LE(BIAS));chunks.push(f64LE(0));
+    // Record 7 sub 11: variable display
+    chunks.push(i32LE(7));chunks.push(i32LE(11));chunks.push(i32LE(4));chunks.push(i32LE(slotCount*3));
+    cols.forEach(function(col){var n=col.isNum?1:STR_SEGS;for(var s=0;s<n;s++){chunks.push(i32LE(1));chunks.push(i32LE(col.isNum?8:STR_WIDTH));chunks.push(i32LE(0));}});
+    // Record 7 sub 13: long variable names
+    var lnStr=cols.map(function(c){return c.shortName+'='+c.h;}).join('\t');
+    var lnB=new TextEncoder().encode(lnStr);
+    chunks.push(i32LE(7));chunks.push(i32LE(13));chunks.push(i32LE(1));chunks.push(i32LE(lnB.length));chunks.push(lnB);
+    // Record 7 sub 16: ncases as int64 — required by SPSS 23+
+    // Format: 2 elements of 8 bytes each: [int64(1), int64(ncases)]
+    var nc64=data.length;
+    chunks.push(i32LE(7));chunks.push(i32LE(16));chunks.push(i32LE(8));chunks.push(i32LE(2));
+    chunks.push(i32LE(1));chunks.push(i32LE(0));       // element 0: int64(1)
+    chunks.push(i32LE(nc64));chunks.push(i32LE(0));    // element 1: int64(ncases)
+    // Record 7 sub 20: character encoding — required by SPSS 23+ for correct string handling
+    var encB=new TextEncoder().encode('UTF-8');
+    chunks.push(i32LE(7));chunks.push(i32LE(20));chunks.push(i32LE(1));chunks.push(i32LE(encB.length));chunks.push(encB);
+    // Record 999: end of dictionary
+    chunks.push(i32LE(999));chunks.push(i32LE(0));
+
+    // DATA: bytecode compression — PER-CASE to prevent mid-stream zero opcodes.
+    // SPSS treats opcode 0 as end-of-file. If we build one global opcodes array,
+    // padding zeros appear whenever total_opcodes % 8 != 0, which can fall
+    // mid-stream between cases and cause SPSS to abort with Error 1405.
+    // Building per-case ensures zeros only appear at end of each case's last
+    // opcode block, where SPSS has already read exactly slotCount values.
+    data.forEach(function(row){
+      var opcodes=[],overflow=[];
+      cols.forEach(function(col){
+        var raw=String(row[col.h]||'').trim();
+        if(col.isNum){
+          var numVal=SYSMIS;
+          if(col.coding){
+            if(col.coding.hasOwnProperty(raw)){numVal=col.coding[raw];}
+            else{var lo=raw.toLowerCase();var k=Object.keys(col.coding).find(function(k){return k.toLowerCase()===lo;});numVal=k!==undefined?col.coding[k]:SYSMIS;}
+          } else {var n=parseFloat(raw);numVal=isNaN(n)?SYSMIS:n;}
+          if(numVal===SYSMIS){opcodes.push(255);}
+          else{var comp=numVal+BIAS;if(Number.isInteger(numVal)&&comp>=1&&comp<=251){opcodes.push(Math.round(comp));}else{opcodes.push(253);overflow.push(f64LE(numVal));}}
+        } else {
+          var sb=new TextEncoder().encode(raw).slice(0,STR_WIDTH);
+          var pd=new Uint8Array(STR_WIDTH);pd.fill(0x20);pd.set(sb);
+          for(var s=0;s<STR_SEGS;s++){
+            var seg=pd.slice(s*8,(s+1)*8);
+            if(seg.every(function(b){return b===0x20;})){opcodes.push(254);}
+            else{opcodes.push(253);overflow.push(seg);}
+          }
+        }
+      });
+      // Pack this case's opcodes into 8-byte blocks with overflow values interleaved
+      var oi=0;
+      for(var i=0;i<opcodes.length;i+=8){
+        var block=new Uint8Array(8);
+        for(var j=0;j<8;j++)block[j]=(i+j<opcodes.length)?opcodes[i+j]:0;
+        chunks.push(block);
+        for(var j=0;j<8;j++){var op=(i+j<opcodes.length)?opcodes[i+j]:0;if(op===253)chunks.push(overflow[oi++]);}
+      }
+    });
+
+    var total=chunks.reduce(function(s,c){return s+c.length;},0);
+    var out=new Uint8Array(total);var off=0;
+    chunks.forEach(function(c){out.set(c,off);off+=c.length;});
+    downloadBlob(new Blob([out],{type:'application/octet-stream'}),(title||'board').replace(/\s+/g,'_')+'.sav');
+  }
+
+  // ── 3. Shapefile zip ─────────────────────────────────────────────────
+  function exportShapefile(){
+    var data=getSorted(getFiltered());
+    if(!data.length){alert('No data to export.');return;}
+    var points=data.map(function(row){return{lat:parseFloat(row[latCol]),lng:parseFloat(row[lngCol]),row:row};}).filter(function(p){return !isNaN(p.lat)&&!isNaN(p.lng);});
+    if(!points.length){alert('No valid coordinates.');return;}
+
+    var minX=points[0].lng,maxX=points[0].lng,minY=points[0].lat,maxY=points[0].lat;
+    points.forEach(function(p){if(p.lng<minX)minX=p.lng;if(p.lng>maxX)maxX=p.lng;if(p.lat<minY)minY=p.lat;if(p.lat>maxY)maxY=p.lat;});
+
+    function i32BE(v){var b=new ArrayBuffer(4);new DataView(b).setInt32(0,v,false);return new Uint8Array(b);}
+    function i32LE(v){var b=new ArrayBuffer(4);new DataView(b).setInt32(0,v,true);return new Uint8Array(b);}
+    function f64LE(v){var b=new ArrayBuffer(8);new DataView(b).setFloat64(0,v,true);return new Uint8Array(b);}
+    function concat(arrs){var t=arrs.reduce(function(s,a){return s+a.length;},0);var o=new Uint8Array(t);var p=0;arrs.forEach(function(a){o.set(a,p);p+=a.length;});return o;}
+
+    var n=points.length,recBytes=20,shpLen=50+n*(4+(recBytes/2));
+    function shpHdr(len){return concat([i32BE(9994),i32BE(0),i32BE(0),i32BE(0),i32BE(0),i32BE(0),i32BE(len),i32LE(1000),i32LE(1),f64LE(minX),f64LE(minY),f64LE(maxX),f64LE(maxY),f64LE(0),f64LE(0),f64LE(0),f64LE(0)]);}
+    var shpRecs=points.map(function(p,i){return concat([i32BE(i+1),i32BE(recBytes/2),i32LE(1),f64LE(p.lng),f64LE(p.lat)]);});
+    var shpData=concat([shpHdr(shpLen)].concat(shpRecs));
+    var shxLen=50+n*4;
+    var shxRecs=[];var off=50;
+    points.forEach(function(){shxRecs.push(concat([i32BE(off),i32BE((recBytes/2)+4)]));off+=4+(recBytes/2);});
+    var shxData=concat([shpHdr(shxLen)].concat(shxRecs));
+
+    var dbfCols=headers.filter(function(h){return h!==latCol&&h!==lngCol;});
+    var fieldDefs=dbfCols.map(function(h){return{name:h.replace(/[^A-Za-z0-9_]/g,'_').slice(0,10),origName:h,width:Math.min(254,Math.max(8,h.length+4))};});
+    var recSize=1+fieldDefs.reduce(function(s,f){return s+f.width;},0);
+    var hdrSize=32+fieldDefs.length*32+1;
+    var dbfBuf=new Uint8Array(hdrSize+n*recSize);
+    var dbv=new DataView(dbfBuf.buffer);
+    var now2=new Date();
+    dbv.setUint8(0,3);dbv.setUint8(1,now2.getFullYear()-1900);dbv.setUint8(2,now2.getMonth()+1);dbv.setUint8(3,now2.getDate());
+    dbv.setUint32(4,n,true);dbv.setUint16(8,hdrSize,true);dbv.setUint16(10,recSize,true);
+    var fOff=32;
+    fieldDefs.forEach(function(f){dbfBuf.set(new TextEncoder().encode(f.name),fOff);dbv.setUint8(fOff+11,67);dbv.setUint8(fOff+16,f.width);fOff+=32;});
+    dbfBuf[fOff]=0x0D;
+    var rOff=hdrSize;
+    points.forEach(function(p){
+      dbfBuf[rOff]=0x20;rOff++;
+      fieldDefs.forEach(function(f){var val=String(p.row[f.origName]||'').slice(0,f.width);while(val.length<f.width)val+=' ';dbfBuf.set(new TextEncoder().encode(val.slice(0,f.width)),rOff);rOff+=f.width;});
+    });
+    var prj='GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]]';
+
+    function crc32(data){var t=[];for(var i=0;i<256;i++){var c=i;for(var j=0;j<8;j++)c=c&1?(0xEDB88320^(c>>>1)):(c>>>1);t[i]=c;}var crc=0xFFFFFFFF;for(var k=0;k<data.length;k++)crc=t[(crc^data[k])&0xFF]^(crc>>>8);return i32LE((crc^0xFFFFFFFF)>>>0);}
+    function zipEntry(name,data){var nb=new TextEncoder().encode(name);var lc=concat([new Uint8Array([0x50,0x4B,0x03,0x04,0x14,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00]),crc32(data),i32LE(data.length),i32LE(data.length),new Uint8Array([nb.length,0,0x00,0x00]),nb,data]);return{local:lc,name:nb,size:data.length,crc:crc32(data)};}
+
+    var stem=(title||'board').replace(/\s+/g,'_');
+    var entries=[zipEntry(stem+'.shp',shpData),zipEntry(stem+'.shx',shxData),zipEntry(stem+'.dbf',dbfBuf),zipEntry(stem+'.prj',new TextEncoder().encode(prj))];
+    var cdOff=entries.reduce(function(s,e){return s+e.local.length;},0);
+    var cdParts=[];var lOff=0;
+    entries.forEach(function(e){cdParts.push(concat([new Uint8Array([0x50,0x4B,0x01,0x02,0x14,0x00,0x14,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00]),e.crc,i32LE(e.size),i32LE(e.size),new Uint8Array([e.name.length,0,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00]),i32LE(lOff),e.name]));lOff+=e.local.length;});
+    var cd=concat(cdParts);
+    var eocd=concat([new Uint8Array([0x50,0x4B,0x05,0x06,0x00,0x00,0x00,0x00]),new Uint8Array([entries.length&0xFF,(entries.length>>8)&0xFF,entries.length&0xFF,(entries.length>>8)&0xFF]),i32LE(cd.length),i32LE(cdOff),new Uint8Array([0x00,0x00])]);
+    var zip=concat(entries.map(function(e){return e.local;}).concat([cd,eocd]));
+    downloadBlob(new Blob([zip],{type:'application/zip'}),stem+'_shapefile.zip');
+  }
+
+  // ── build chrome ──────────────────────────────────────────────────────
+  var spssTag=spssScheme?(' · '+Object.keys(spssScheme).filter(function(k){return spssScheme[k]&&spssScheme[k].coding;}).length+' coded'):'';
+  document.body.innerHTML=
+    '<div class="topbar">'+
+      '<span class="board-title">'+esc(title)+'</span>'+
+      '<span class="sheet-status" id="sheetStatus">'+(SHEET_READY?'loading reviews…':'reviews not configured')+'</span>'+
+      '<span class="row-count">'+rows.length+' rows</span>'+
+      '<div class="export-wrap">'+
+        '<button class="export-btn" id="exportToggle" onclick="toggleExportMenu()">'+
+          '<svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>'+
+          'Export'+
+        '</button>'+
+        '<div class="export-menu" id="exportMenu">'+
+          '<button class="export-menu-item" onclick="doExport(\'csv\')"><span class="fmt-icon fmt-csv">CSV</span><span class="fmt-label">CSV<span class="fmt-desc">Plain spreadsheet</span></span></button>'+
+          '<div class="export-divider"></div>'+
+          '<button class="export-menu-item" onclick="doExport(\'spss\')"><span class="fmt-icon fmt-spss">SAV</span><span class="fmt-label">SPSS .sav<span class="fmt-desc">Coded numeric'+spssTag+'</span></span></button>'+
+          '<div class="export-divider"></div>'+
+          '<button class="export-menu-item" onclick="doExport(\'shp\')"><span class="fmt-icon fmt-shp">SHP</span><span class="fmt-label">Shapefile<span class="fmt-desc">Point geometry zip</span></span></button>'+
+        '</div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="tabs">'+
+      '<button class="tab active" id="tabTable" onclick="switchTab(\'table\')"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>Table</button>'+
+      '<button class="tab" id="tabMap" onclick="switchTab(\'map\')"><svg viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>Map</button>'+
+    '</div>'+
+    '<div class="toolbar"><div class="search-wrap"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input class="search-input" id="searchInput" placeholder="Search rows\u2026" oninput="onSearch(this.value)" /></div><span class="result-count" id="resultCount"></span></div>'+
+    '<div class="views"><div class="view active" id="tableView"></div><div class="view" id="mapView"><div id="map"></div></div></div>'+
+    '<div class="detail-panel" id="detailPanel">'+
+      '<div class="detail-header"><span class="detail-title" id="detailTitle"></span><button class="detail-close" onclick="closeDetail()">&#x2715;</button></div>'+
+      '<div class="detail-body">'+
+        '<div class="detail-grid" id="detailGrid"></div>'+
+        '<div class="review-section"><div class="review-label">Leave a review</div>'+
+          (SHEET_READY
+            ?'<div class="reviewer-row"><span class="reviewer-label">Your name:</span><input class="reviewer-input" id="reviewerName" placeholder="e.g. Jane Doe" /></div>'+
+              '<div class="review-actions"><button class="action-btn approve" id="btnApprove" onclick="submitAction(\'approve\')">✓ Approve</button><button class="action-btn reject" id="btnReject" onclick="submitAction(\'reject\')">✕ Reject</button><button class="action-btn flag" id="btnFlag" onclick="submitAction(\'flag\')">⚑ Flag</button><button class="action-btn comment" id="btnComment" onclick="submitAction(\'comment\')">✎ Comment</button></div>'+
+              '<textarea class="comment-input" id="commentInput" placeholder="Add a comment\u2026"></textarea>'+
+              '<div class="review-feedback" id="reviewFeedback"></div>'
+            :'<div class="not-configured">Reviews not configured. Paste your Apps Script URL into SHEET_URL in board.html.</div>'
+          )+
+          '<div id="reviewsList" style="margin-top:16px;"></div>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+
+  document.addEventListener('click',function(e){var m=document.getElementById('exportMenu'),b=document.getElementById('exportToggle');if(m&&!m.contains(e.target)&&e.target!==b&&!b.contains(e.target))m.classList.remove('open');});
+
+  // ── table ─────────────────────────────────────────────────────────────
+  function renderTable(){
+    var filtered=getSorted(getFiltered());
+    var el=document.getElementById('tableView');
+    var rc=document.getElementById('resultCount');
+    if(rc)rc.textContent=filterText?(filtered.length+' of '+rows.length):'';
+    if(!filtered.length){el.innerHTML='<div class="no-results">No rows match your search.</div>';return;}
+    var coordSet={};coordSet[latCol]=true;coordSet[lngCol]=true;
+    var html='<table><thead><tr>';
+    if(SHEET_READY)html+='<th class="th-status">Status</th>';
+    headers.forEach(function(h){var cls=sortCol===h?(sortDir===1?'sort-asc':'sort-desc'):'';html+='<th class="'+cls+'" onclick="sortBy(\''+esc(h)+'\')">'+esc(h)+'</th>';});
+    html+='</tr></thead><tbody>';
+    filtered.forEach(function(row){
+      var idx=rows.indexOf(row);
+      html+='<tr class="'+(selectedRow===row?'highlighted':'')+'" onclick="selectRow('+idx+')">';
+      if(SHEET_READY)html+='<td>'+rowStatusBadge(row)+'</td>';
+      headers.forEach(function(h){var val=row[h]!=null?row[h]:'';html+='<td class="'+(coordSet[h]?'coord':'')+'" title="'+esc(val)+'">'+esc(val||'—')+'</td>';});
+      html+='</tr>';
+    });
+    html+='</tbody></table>';el.innerHTML=html;
+  }
+
+  function renderDetailReviews(row){
+    var el=document.getElementById('reviewsList');if(!el||!SHEET_READY)return;
+    var k=rowKey(row),revs=reviewCache[k]||[];if(!revs.length){el.innerHTML='';return;}
+    var aL={approve:'✓ Approved',reject:'✕ Rejected',flag:'⚑ Flagged',comment:'✎ Comment'};
+    var aB={approve:'badge-approve',reject:'badge-reject',flag:'badge-flag',comment:'badge-comment'};
+    var html='<div class="review-label">Previous reviews ('+revs.length+')</div><div class="reviews-list">';
+    revs.slice().reverse().forEach(function(rev){html+='<div class="review-item"><div class="review-item-top"><span class="badge '+(aB[rev.action]||'badge-comment')+'">'+esc(aL[rev.action]||rev.action)+'</span><span style="font-size:13px;color:var(--text-secondary);">'+esc(rev.reviewer||'anonymous')+'</span><span class="review-item-meta">'+esc(fmtDate(rev.timestamp))+'</span></div>'+(rev.comment?'<div class="review-item-body">'+esc(rev.comment)+'</div>':'')+' </div>';});
+    html+='</div>';el.innerHTML=html;
+  }
+
+  // ── map ───────────────────────────────────────────────────────────────
+  function initMap(){
+    if(leafletMap)return;
+    if(typeof L==='undefined'){var mv=document.getElementById('mapView');if(mv)mv.innerHTML='<div class="no-results">Map unavailable.</div>';return;}
+    leafletMap=L.map('map',{zoomControl:true});
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'\u00a9 OpenStreetMap \u00a9 CartoDB',subdomains:'abcd',maxZoom:19}).addTo(leafletMap);
+    markerLayer=L.featureGroup().addTo(leafletMap);renderMarkers();
+  }
+  function renderMarkers(){
+    if(!leafletMap||!markerLayer)return;markerLayer.clearLayers();
+    getSorted(getFiltered()).forEach(function(row){
+      var lat=parseFloat(row[latCol]),lng=parseFloat(row[lngCol]);if(isNaN(lat)||isNaN(lng))return;
+      var color=markerColor(row);
+      var icon=L.divIcon({className:'',html:'<div style="width:10px;height:10px;background:'+color+';border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.28);"></div>',iconSize:[10,10],iconAnchor:[5,5]});
+      var lbl=getLabel(row);
+      var extra=headers.filter(function(h){return h!==latCol&&h!==lngCol;}).slice(0,5).map(function(h){return row[h]?'<span><strong>'+esc(h)+':</strong> '+esc(row[h])+'</span>':'';}).filter(Boolean).join('<br>');
+      L.marker([lat,lng],{icon:icon}).addTo(markerLayer).bindPopup('<div class="popup-title">'+esc(lbl)+'</div><div class="popup-coords">'+lat.toFixed(5)+', '+lng.toFixed(5)+'</div>'+(extra?'<div class="popup-fields">'+extra+'</div>':''));
+    });
+    if(markerLayer.getLayers().length>0){try{leafletMap.fitBounds(markerLayer.getBounds(),{padding:[40,40]});}catch(_){}}
+  }
+
+  // ── global handlers ───────────────────────────────────────────────────
+  window.toggleExportMenu=function(){document.getElementById('exportMenu').classList.toggle('open');};
+  window.doExport=function(fmt){
+    document.getElementById('exportMenu').classList.remove('open');
+    try {
+      if(fmt==='csv')exportCSV();
+      else if(fmt==='spss')exportSPSS();
+      else if(fmt==='shp')exportShapefile();
+    } catch(e) {
+      alert('Export failed: '+e.message+'\n\nCheck the browser console for details.');
+      console.error('Export error:',e);
+    }
+  };
+  window.switchTab=function(tab){var iT=tab==='table';document.getElementById('tabTable').classList.toggle('active',iT);document.getElementById('tabMap').classList.toggle('active',!iT);document.getElementById('tableView').classList.toggle('active',iT);document.getElementById('mapView').classList.toggle('active',!iT);if(!iT){setTimeout(function(){initMap();if(leafletMap)leafletMap.invalidateSize();},60);}};
+  window.onSearch=function(val){filterText=val;renderTable();if(leafletMap)renderMarkers();};
+  window.sortBy=function(col){sortDir=sortCol===col?sortDir*-1:1;sortCol=col;renderTable();};
+  window.selectRow=function(idx){
+    selectedRow=rows[idx];
+    document.getElementById('detailTitle').textContent=getLabel(selectedRow);
+    document.getElementById('detailGrid').innerHTML=headers.map(function(h){
+      var val=selectedRow[h]||'—';
+      // Show decoded label alongside raw code if scheme available
+      var decoded='';
+      if(spssScheme&&spssScheme[h]&&spssScheme[h].valueLabels){
+        var code=spssScheme[h].coding&&spssScheme[h].coding[val];
+        if(code!=null&&spssScheme[h].valueLabels[code])decoded=' <span style="font-size:11px;color:var(--text-hint);display:block;">→ code '+code+'</span>';
+      }
+      var label=spssScheme&&spssScheme[h]?spssScheme[h].varLabel:h;
+      return '<div class="detail-cell"><div class="detail-key" title="'+esc(label)+'">'+esc(h)+'</div><div class="detail-val">'+esc(val)+decoded+'</div></div>';
+    }).join('');
+    var fb=document.getElementById('reviewFeedback');if(fb){fb.className='review-feedback';fb.textContent='';}
+    var ci=document.getElementById('commentInput');if(ci)ci.value='';
+    renderDetailReviews(selectedRow);
+    document.getElementById('detailPanel').classList.add('open');renderTable();
+  };
+  window.closeDetail=function(){selectedRow=null;document.getElementById('detailPanel').classList.remove('open');renderTable();};
+  window.submitAction=function(action){
+    if(!selectedRow)return;
+    var ci=document.getElementById('commentInput'),rni=document.getElementById('reviewerName'),fb=document.getElementById('reviewFeedback');
+    var comment=ci?ci.value.trim():'',reviewer=rni?rni.value.trim():'';
+    if(action==='comment'&&!comment){fb.textContent='Please write a comment first.';fb.className='review-feedback visible err';return;}
+    var btns=['btnApprove','btnReject','btnFlag','btnComment'];
+    btns.forEach(function(id){var b=document.getElementById(id);if(b)b.disabled=true;});
+    if(ci)ci.disabled=true;if(rni)rni.disabled=true;if(fb){fb.className='review-feedback';fb.textContent='';}
+    postReview(selectedRow,action,comment,reviewer,function(ok,errMsg){
+      btns.forEach(function(id){var b=document.getElementById(id);if(b)b.disabled=false;});
+      if(ci){ci.disabled=false;ci.value='';}if(rni)rni.disabled=false;
+      if(ok){fb.textContent='Review submitted.';fb.className='review-feedback visible ok';renderDetailReviews(selectedRow);renderTable();if(leafletMap)renderMarkers();}
+      else{fb.textContent='Failed: '+(errMsg||'unknown error');fb.className='review-feedback visible err';}
+    });
+  };
+
+  // ── initial load ──────────────────────────────────────────────────────
+  renderTable();
+  fetchReviews(function(ok){
+    var el=document.getElementById('sheetStatus');if(!SHEET_READY||!el)return;
+    if(ok){var t=Object.keys(reviewCache).reduce(function(n,k){return n+reviewCache[k].length;},0);el.className='sheet-status ok';el.textContent=t+' review'+(t===1?'':'s');}
+    else{el.className='sheet-status err';el.textContent='sheet error';}
+    renderTable();if(leafletMap)renderMarkers();
+  });
+
+})();
+</script>
+</body>
+</html>
