@@ -169,7 +169,7 @@
     a.href=URL.createObjectURL(blob);
     a.download=name;
     a.style.display='none';
-    document.body.appendChild(a);  // required for Firefox & Safari
+    document.body.appendChild(a);
     a.click();
     setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(a.href);},1500);
   }
@@ -196,7 +196,6 @@
   var headers    = payload.headers;
   var rows       = payload.rows;
   var spssScheme = payload.spssScheme || null;
-  // spssScheme: { fieldId: { varLabel, type, coding: {responseText: code}, valueLabels: {code: label} } }
 
   if(!Array.isArray(rows)||!rows.length){showError('Empty board.','No data rows found.');return;}
   if(!Array.isArray(headers)||!headers.length){showError('Invalid board.','Missing column headers.');return;}
@@ -238,7 +237,6 @@
   //  EXPORT ENGINES
   // ════════════════════════════════════════════════════════════════════════
 
-  // ── 1. CSV ────────────────────────────────────────────────────────────
   function exportCSV(){
     var data=getSorted(getFiltered());
     var lines=[headers.map(function(h){return '"'+h.replace(/"/g,'""')+'"';}).join(',')];
@@ -246,7 +244,7 @@
     downloadBlob(new Blob([lines.join('\r\n')],{type:'text/csv'}),(title||'board').replace(/\s+/g,'_')+'.csv');
   }
 
-  // ── 2. SPSS .sav — matches IBM SPSS format with compression & long strings ──
+  // ── Corrected SPSS Export Engine ──────────────────────────────────────
   function exportSPSS(){
     var data=getSorted(getFiltered());
     if(!data.length){alert('No data to export.');return;}
@@ -256,31 +254,41 @@
     function i32LE(v){var b=new ArrayBuffer(4);new DataView(b).setInt32(0,v>>>0,true);return new Uint8Array(b);}
     function f64LE(v){var b=new ArrayBuffer(8);new DataView(b).setFloat64(0,v,true);return new Uint8Array(b);}
     function padStr(s,n){var r=new Uint8Array(n);r.fill(0x20);var src=new TextEncoder().encode(String(s));r.set(src.slice(0,n));return r;}
-    function spssName(h){var n=h.replace(/[^A-Za-z0-9_@#$]/g,'_');if(/^[^A-Za-z@#$]/.test(n))n='V'+n;return n.slice(0,8).toUpperCase();}
+    
+    // Track shortnames to prevent duplication bugs
+    var usedNames = {};
+    function spssName(h){
+      var n=h.replace(/[^A-Za-z0-9_@#$]/g,'_');
+      if(/^[^A-Za-z@#$]/.test(n))n='V'+n;
+      n = n.slice(0,8).toUpperCase();
+      // Auto-increment if name exists
+      if(usedNames[n]){
+        var i=1;
+        while(usedNames[n.slice(0,8-String(i).length)+i]) i++;
+        n = n.slice(0,8-String(i).length)+i;
+      }
+      usedNames[n] = true;
+      return n;
+    }
 
     var cols=headers.map(function(h){
-      // Build reverse lookup: try field ID, then slug variants, then normalized prefix
       var sc=null;
       if(spssScheme){
-        // 1. Exact key match (field ID or pre-slugged name)
         if(spssScheme[h]){sc=spssScheme[h];}
         else {
           var hLo=h.toLowerCase();
-          // 2. Try all slug variants of each scheme entry's fieldName
           var hNorm=hLo.replace(/[^a-z0-9]/g,'').slice(0,10);
-          var bestLen=3; // minimum chars to match
+          var bestLen=3;
           Object.keys(spssScheme).forEach(function(k){
             var entry=spssScheme[k];
             if(!entry.fieldName)return;
             var fn=entry.fieldName.toLowerCase();
-            // Slug variants
             var slugs=[
               fn.replace(/[^a-z0-9]/g,'_').slice(0,8),
               fn.replace(/[^a-z0-9]/g,'_').replace(/_+/g,'_').slice(0,8),
               fn.split(/[^a-z0-9]+/).filter(Boolean).slice(0,3).join('_').slice(0,8),
             ];
             if(slugs.indexOf(hLo)!==-1){sc=entry;return;}
-            // Normalized prefix fallback
             var eNorm=fn.replace(/[^a-z0-9]/g,'').slice(0,10);
             var matchLen=0;
             var minLen=Math.min(hNorm.length,eNorm.length);
@@ -302,21 +310,22 @@
     var chunks=[],now=new Date();
     var months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-    // Record 1: file header
     var hdr=new Uint8Array(176);hdr.fill(0x20);
     hdr.set(new TextEncoder().encode('$FL2'),0);
     hdr.set(padStr('@(#) IBM SPSS STATISTICS MS Windows 23.0.0.0',60),4);
     var hdv=new DataView(hdr.buffer);
     hdv.setInt32(64,2,true);hdv.setInt32(68,slotCount,true);hdv.setInt32(72,1,true);
     hdv.setInt32(76,0,true);hdv.setInt32(80,data.length,true);hdv.setFloat64(84,BIAS,true);
-    var ds=String(now.getDate()).padStart(2,'0')+' '+months[now.getMonth()]+' '+String(now.getFullYear()).slice(2);
+    
+    // Corrected Date and Time Strings for exactly 9 and 8 bytes
+    var ds=(String(now.getDate()).padStart(2,'0')+' '+months[now.getMonth()]+' '+String(now.getFullYear()).slice(2)).padEnd(9,' ');
     var ts=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0');
     hdr.set(padStr(ds,9),92);hdr.set(padStr(ts,8),101);hdr.set(padStr('',64),109);
-    // bytes 173-175 MUST be 0x00 (null) per SPSS spec — not spaces
+    
+    // Explicit null termination (crucial for structural integrity)
     hdr[173]=0;hdr[174]=0;hdr[175]=0;
     chunks.push(hdr);
 
-    // Records 2: variable records + string continuation records
     cols.forEach(function(col){
       var lb2=new TextEncoder().encode(col.varLabel).slice(0,120);
       var ll2=lb2.length,lp2=Math.ceil(ll2/4)*4;
@@ -338,7 +347,6 @@
       }
     });
 
-    // Records 3+4: value labels
     cols.forEach(function(col,ci){
       if(!col.vLabels||!Object.keys(col.vLabels).length)return;
       var entries=Object.keys(col.vLabels);
@@ -352,37 +360,27 @@
       chunks.push(i32LE(4));chunks.push(i32LE(1));chunks.push(i32LE(varSlotMap[ci]));
     });
 
-    // Record 7 sub 3: machine integer info
     chunks.push(i32LE(7));chunks.push(i32LE(3));chunks.push(i32LE(4));chunks.push(i32LE(8));
     [720,1,2,1,0,1,0,1252].forEach(function(v){chunks.push(i32LE(v));});
-    // Record 7 sub 4: machine float info
     chunks.push(i32LE(7));chunks.push(i32LE(4));chunks.push(i32LE(8));chunks.push(i32LE(3));
     chunks.push(f64LE(SYSMIS));chunks.push(f64LE(BIAS));chunks.push(f64LE(0));
-    // Record 7 sub 11: variable display
     chunks.push(i32LE(7));chunks.push(i32LE(11));chunks.push(i32LE(4));chunks.push(i32LE(slotCount*3));
     cols.forEach(function(col){var n=col.isNum?1:STR_SEGS;for(var s=0;s<n;s++){chunks.push(i32LE(1));chunks.push(i32LE(col.isNum?8:STR_WIDTH));chunks.push(i32LE(0));}});
-    // Record 7 sub 13: long variable names
+    
     var lnStr=cols.map(function(c){return c.shortName+'='+c.h;}).join('\t');
     var lnB=new TextEncoder().encode(lnStr);
     chunks.push(i32LE(7));chunks.push(i32LE(13));chunks.push(i32LE(1));chunks.push(i32LE(lnB.length));chunks.push(lnB);
-    // Record 7 sub 16: ncases as int64 — required by SPSS 23+
-    // Format: 2 elements of 8 bytes each: [int64(1), int64(ncases)]
+    
     var nc64=data.length;
     chunks.push(i32LE(7));chunks.push(i32LE(16));chunks.push(i32LE(8));chunks.push(i32LE(2));
-    chunks.push(i32LE(1));chunks.push(i32LE(0));       // element 0: int64(1)
-    chunks.push(i32LE(nc64));chunks.push(i32LE(0));    // element 1: int64(ncases)
-    // Record 7 sub 20: character encoding — required by SPSS 23+ for correct string handling
+    chunks.push(i32LE(1));chunks.push(i32LE(0));
+    chunks.push(i32LE(nc64));chunks.push(i32LE(0));
+    
     var encB=new TextEncoder().encode('UTF-8');
     chunks.push(i32LE(7));chunks.push(i32LE(20));chunks.push(i32LE(1));chunks.push(i32LE(encB.length));chunks.push(encB);
-    // Record 999: end of dictionary
+    
     chunks.push(i32LE(999));chunks.push(i32LE(0));
 
-    // DATA: bytecode compression — PER-CASE to prevent mid-stream zero opcodes.
-    // SPSS treats opcode 0 as end-of-file. If we build one global opcodes array,
-    // padding zeros appear whenever total_opcodes % 8 != 0, which can fall
-    // mid-stream between cases and cause SPSS to abort with Error 1405.
-    // Building per-case ensures zeros only appear at end of each case's last
-    // opcode block, where SPSS has already read exactly slotCount values.
     data.forEach(function(row){
       var opcodes=[],overflow=[];
       cols.forEach(function(col){
@@ -405,7 +403,6 @@
           }
         }
       });
-      // Pack this case's opcodes into 8-byte blocks with overflow values interleaved
       var oi=0;
       for(var i=0;i<opcodes.length;i+=8){
         var block=new Uint8Array(8);
@@ -598,7 +595,6 @@
     document.getElementById('detailTitle').textContent=getLabel(selectedRow);
     document.getElementById('detailGrid').innerHTML=headers.map(function(h){
       var val=selectedRow[h]||'—';
-      // Show decoded label alongside raw code if scheme available
       var decoded='';
       if(spssScheme&&spssScheme[h]&&spssScheme[h].valueLabels){
         var code=spssScheme[h].coding&&spssScheme[h].coding[val];
