@@ -365,6 +365,15 @@
     var lnStr=cols.map(function(c){return c.shortName+'='+c.h;}).join('\t');
     var lnB=new TextEncoder().encode(lnStr);
     chunks.push(i32LE(7));chunks.push(i32LE(13));chunks.push(i32LE(1));chunks.push(i32LE(lnB.length));chunks.push(lnB);
+    // Record 7 sub 16: ncases as int64 — required by SPSS 23+
+    // Format: 2 elements of 8 bytes each: [int64(1), int64(ncases)]
+    var nc64=data.length;
+    chunks.push(i32LE(7));chunks.push(i32LE(16));chunks.push(i32LE(8));chunks.push(i32LE(2));
+    chunks.push(i32LE(1));chunks.push(i32LE(0));       // element 0: int64(1)
+    chunks.push(i32LE(nc64));chunks.push(i32LE(0));    // element 1: int64(ncases)
+    // Record 7 sub 20: character encoding — required by SPSS 23+ for correct string handling
+    var encB=new TextEncoder().encode('UTF-8');
+    chunks.push(i32LE(7));chunks.push(i32LE(20));chunks.push(i32LE(1));chunks.push(i32LE(encB.length));chunks.push(encB);
     // Record 999: end of dictionary
     chunks.push(i32LE(999));chunks.push(i32LE(0));
 
