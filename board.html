@@ -157,7 +157,7 @@
 (function () {
 
   // ── config ────────────────────────────────────────────────────────────
-  var SHEET_URL = 'https://script.google.com/macros/s/AKfycbzsY17vKqxmiNyEDa_7SJf6rvSolYBdYnIbbViCAEgmXlM6OqKloH79Bpd4bG2KeULI/exec'; // paste your Apps Script /exec URL here
+  var SHEET_URL = 'https://script.google.com/macros/s/AKfycbyk8WQ9GFDBRmPpRDSrD8LpLBMZsReHqlyrP7afzsoca3mmRHRIJ2SzcJ3pyPmbyTw/exec'; // paste your Apps Script /exec URL here
   var SHEET_READY = SHEET_URL.indexOf('script.google.com') !== -1;
 
   // ── utilities ─────────────────────────────────────────────────────────
@@ -176,14 +176,31 @@
 
   // ── decode hash ───────────────────────────────────────────────────────
   var rawHash=window.location.hash.slice(1);
+  var urlId=new URLSearchParams(window.location.search).get('id');
   var payload;
 
   // Support standalone HTML mode: __BOARD_DATA__ is the raw JSON payload string
   if(window.__BOARD_DATA__){
     try{payload=JSON.parse(window.__BOARD_DATA__);}
     catch(e){showError('Could not read embedded board data.',e.message);return;}
+    initBoard(payload);
+  } else if(urlId){
+    // Cloud storage mode: load from Google Apps Script by ID
+    if(!SHEET_URL||SHEET_URL.indexOf('script.google.com')===-1){
+      showError('Board not configured.','Paste your Apps Script URL into SHEET_URL in board.html.');return;
+    }
+    document.body.innerHTML='<div class="error-state"><h2>Loading board…</h2><p>Fetching data from cloud storage.</p></div>';
+    fetch(SHEET_URL+'?action=load&id='+encodeURIComponent(urlId))
+      .then(function(r){return r.json();})
+      .then(function(res){
+        if(!res.ok)throw new Error(res.error||'Load failed');
+        initBoard(res.payload);
+      })
+      .catch(function(e){
+        showError('Could not load board.','Error: '+e.message+'. Check that SHEET_URL is set correctly in board.html.');
+      });
   } else {
-    if(!rawHash){showError('No board data found.','Upload a CSV to generate a valid board link.');return;}
+    if(!rawHash){showError('No board data found.','Upload a CSV on index.html to generate a board link.');return;}
     function decodeHash(hash){
       var b64=hash.replace(/-/g,'+').replace(/_/g,'/');
       var pad=b64.length%4;if(pad===2)b64+='==';else if(pad===3)b64+='=';
@@ -192,7 +209,10 @@
       return JSON.parse(decodeURIComponent(escape(binStr)));
     }
     try{payload=decodeHash(rawHash);}catch(e){showError('Could not read board data.','The link may be corrupted.',e.message);return;}
+    initBoard(payload);
   }
+
+  function initBoard(payload){
 
   var title      = payload.title    || 'Data Board';
   var latCol     = payload.latCol;
@@ -688,6 +708,8 @@
     else{el.className='sheet-status err';el.textContent='sheet error';}
     renderTable();if(leafletMap)renderMarkers();
   });
+
+  } // end initBoard
 
 })();
 </script>
