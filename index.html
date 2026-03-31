@@ -184,7 +184,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
 <script>
-var SHEET_URL = 'https://script.google.com/macros/s/AKfycbyk8WQ9GFDBRmPpRDSrD8LpLBMZsReHqlyrP7afzsoca3mmRHRIJ2SzcJ3pyPmbyTw/exec'; // ← paste your Apps Script /exec URL here (same one as board.html)
+var SHEET_URL = 'https://script.google.com/macros/s/AKfycbzsY17vKqxmiNyEDa_7SJf6rvSolYBdYnIbbViCAEgmXlM6OqKloH79Bpd4bG2KeULI/exec'; // ← paste your Apps Script /exec URL here (same one as board.html)
 
 var $ = function(id) { return document.getElementById(id); };
 var dropZone=$('dropZone'), fileInput=$('fileInput'), filePreview=$('filePreview');
@@ -422,10 +422,10 @@ generateBtn.addEventListener('click',function(){
     spssScheme: spssScheme||null
   };
 
-  generateBtn.textContent='Saving…';generateBtn.disabled=true;
-  showMsg('Uploading to JSONBin…','');
+  generateBtn.textContent='Saving\u2026';generateBtn.disabled=true;
+  showMsg('Uploading to GitHub Gist\u2026','');
 
-  // Compress with pako so even large surveys fit in JSONBin's 100KB free limit
+  // Compress payload with pako
   function compressPayload(obj){
     var json=JSON.stringify(obj);
     if(typeof pako!=='undefined'){
@@ -437,42 +437,49 @@ generateBtn.addEventListener('click',function(){
     return btoa(unescape(encodeURIComponent(json)));
   }
 
-  var compressed=compressPayload(payload);
-  var binBody=JSON.stringify({d:compressed,t:payload.title||'Board'});
+  var compressed = compressPayload(payload);
 
-  fetch('https://api.jsonbin.io/v3/b',{
+  // GitHub Gist: anonymous public gist, no auth needed, CORS ok, free, permanent
+  fetch('https://api.github.com/gists',{
     method:'POST',
-    headers:{'Content-Type':'application/json','X-Bin-Private':'false'},
-    body:binBody
+    headers:{'Content-Type':'application/json','Accept':'application/vnd.github+json'},
+    body:JSON.stringify({
+      description: (payload.title||'Board')+' — CSV Board data',
+      public: true,
+      files:{'board_data.txt':{content: compressed}}
+    })
   })
   .then(function(r){
-    if(!r.ok)throw new Error('JSONBin error '+r.status+': '+r.statusText);
+    if(!r.ok) throw new Error('GitHub error '+r.status+': '+r.statusText);
     return r.json();
   })
   .then(function(res){
-    var id=res.metadata.id;
+    var gistId = res.id;
     var base=window.location.href.replace(/\/index\.html(\?.*)?$/,'').replace(/\/$/,'');
-    var boardUrl=base+'/board.html?bin='+id;
+    var boardUrl=base+'/board.html?gist='+gistId;
+
     resultUrl.textContent=boardUrl;
     openBtn.onclick=function(){window.open(boardUrl,'_blank');};
     openBtn.style.display='';
     document.getElementById('copyBtn').style.display='';
     resultBox.classList.add('visible');
     hideMsg();
+
     var skipped=parsedData.rows.length-filtered.length;
     var coded=spssScheme?Object.keys(spssScheme).filter(function(k){return spssScheme[k]&&spssScheme[k].coding;}).length:0;
     statsRow.innerHTML=
-      '<span class="badge">Saved ✓</span>'+
-      '<span>'+filtered.length+' rows · '+parsedData.headers.length+' cols'+(skipped?' · '+skipped+' skipped':'')+'</span>'+
+      '<span class="badge">Saved \u2713</span>'+
+      '<span>'+filtered.length+' rows \xb7 '+parsedData.headers.length+' cols'+(skipped?' \xb7 '+skipped+' skipped':'')+'</span>'+
       (spssScheme?'<span class="badge">'+coded+' coded fields</span>':'')+
-      '<span style="font-family:monospace;font-size:11px;">ID: '+id+'</span>';
+      '<span style="font-family:monospace;font-size:11px;">ID: '+gistId.slice(0,12)+'</span>';
+
     generateBtn.textContent='Generate board';generateBtn.disabled=false;
   })
   .catch(function(e){
     showMsg('Upload failed: '+e.message,'error');
     generateBtn.textContent='Generate board';generateBtn.disabled=false;
   });
-});;;;
+});;;;;
 
 copyBtn.addEventListener('click',function(){
   navigator.clipboard.writeText(resultUrl.textContent).then(function(){
