@@ -157,7 +157,7 @@
 (function () {
 
   // ── config ────────────────────────────────────────────────────────────
-  var SHEET_URL = 'https://script.google.com/macros/s/AKfycbyk8WQ9GFDBRmPpRDSrD8LpLBMZsReHqlyrP7afzsoca3mmRHRIJ2SzcJ3pyPmbyTw/exec'; // paste your Apps Script /exec URL here
+  var SHEET_URL = 'https://script.google.com/macros/s/AKfycbzsY17vKqxmiNyEDa_7SJf6rvSolYBdYnIbbViCAEgmXlM6OqKloH79Bpd4bG2KeULI/exec'; // paste your Apps Script /exec URL here
   var SHEET_READY = SHEET_URL.indexOf('script.google.com') !== -1;
 
   // ── utilities ─────────────────────────────────────────────────────────
@@ -176,7 +176,7 @@
 
   // ── decode / load payload ─────────────────────────────────────────────
   var rawHash=window.location.hash.slice(1);
-  var binId=new URLSearchParams(window.location.search).get('bin');
+  var binId=new URLSearchParams(window.location.search).get('gist')||new URLSearchParams(window.location.search).get('bin');
   var payload;
 
   function decodeHash(hash){
@@ -201,13 +201,16 @@
     initBoard(payload);
 
   } else if(binId){
-    // JSONBin cloud mode
-    document.body.innerHTML='<div class="error-state"><h2>Loading board…</h2><p>Fetching from JSONBin.</p></div>';
-    fetch('https://api.jsonbin.io/v3/b/'+encodeURIComponent(binId)+'/latest')
-      .then(function(r){if(!r.ok)throw new Error('JSONBin error '+r.status);return r.json();})
+    // GitHub Gist cloud mode
+    document.body.innerHTML='<div class="error-state"><h2>Loading board…</h2><p>Fetching from GitHub Gist.</p></div>';
+    fetch('https://api.github.com/gists/'+encodeURIComponent(binId),{
+      headers:{'Accept':'application/vnd.github+json'}
+    })
+      .then(function(r){if(!r.ok)throw new Error('GitHub error '+r.status);return r.json();})
       .then(function(res){
-        if(!res.record||!res.record.d)throw new Error('Invalid bin data');
-        initBoard(decompress(res.record.d));
+        var file=res.files&&res.files['board_data.txt'];
+        if(!file||!file.content)throw new Error('Gist data missing');
+        initBoard(decompress(file.content));
       })
       .catch(function(e){showError('Could not load board.','Error: '+e.message);});
 
