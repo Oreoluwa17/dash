@@ -195,8 +195,14 @@
   var labelCol   = payload.labelCol || null;
   var headers    = payload.headers;
   var rows       = payload.rows;
+  // Scheme: prefer payload, fall back to sessionStorage (set by index.html)
   var spssScheme = payload.spssScheme || null;
-  // spssScheme: { fieldId: { varLabel, type, coding: {responseText: code}, valueLabels: {code: label} } }
+  if(!spssScheme){
+    try{
+      var cached=sessionStorage.getItem('csvboard_scheme');
+      if(cached) spssScheme=JSON.parse(cached);
+    }catch(_){}
+  }
 
   if(!Array.isArray(rows)||!rows.length){showError('Empty board.','No data rows found.');return;}
   if(!Array.isArray(headers)||!headers.length){showError('Invalid board.','Missing column headers.');return;}
@@ -499,6 +505,8 @@
           '<button class="export-menu-item" onclick="doExport(\'spss\')"><span class="fmt-icon fmt-spss">SAV</span><span class="fmt-label">SPSS .sav<span class="fmt-desc">Coded numeric'+spssTag+'</span></span></button>'+
           '<div class="export-divider"></div>'+
           '<button class="export-menu-item" onclick="doExport(\'shp\')"><span class="fmt-icon fmt-shp">SHP</span><span class="fmt-label">Shapefile<span class="fmt-desc">Point geometry zip</span></span></button>'+
+          '<div class="export-divider"></div>'+
+          '<label class="export-menu-item" style="cursor:pointer;"><span class="fmt-icon fmt-spss" style="font-size:9px;">JSON</span><span class="fmt-label" id="schemeLabel">'+(spssScheme?'Scheme loaded ✓':'Load form JSON<span class="fmt-desc">For coded SPSS export</span>')+'</span><input type="file" accept=".json" style="display:none" onchange="loadSchemeFile(this)"></label>'+
         '</div>'+
       '</div>'+
     '</div>'+
@@ -582,6 +590,41 @@
 
   // ── global handlers ───────────────────────────────────────────────────
   window.toggleExportMenu=function(){document.getElementById('exportMenu').classList.toggle('open');};
+  window.loadSchemeFile=function(input){
+    var file=input.files[0]; if(!file)return;
+    var reader=new FileReader();
+    reader.onload=function(e){
+      try{
+        var parsed=JSON.parse(e.target.result);
+        // Accept raw form definition array or pre-built scheme object
+        if(Array.isArray(parsed)){
+          // Build scheme from form definition
+          var scheme={};
+          parsed.forEach(function(field){
+            var entry={id:field.id,fieldName:field.fieldName,varLabel:(field.fieldName||'').slice(0,120),type:field.type,coding:null,vLabels:null};
+            if(field.type==='yes_no'){entry.coding={yes:1,no:2};entry.vLabels={1:'Yes',2:'No'};}
+            else if(field.type==='dropdown'){
+              var opts=field.metadata&&field.metadata.dropdown&&field.metadata.dropdown.options;
+              if(opts&&opts.length){var real=opts.filter(function(o){return o!=='-'&&o!=='';});entry.coding={};entry.vLabels={};real.forEach(function(o,i){entry.coding[o]=i+1;entry.vLabels[i+1]=o;});if(field.metadata.dropdown.allowOther){var n=real.length+1;entry.coding['Other']=n;entry.vLabels[n]='Other (specify)';}}
+            } else if(field.type==='checklist'){
+              var opts=field.metadata&&field.metadata.checklist&&field.metadata.checklist.options;
+              if(opts&&opts.length){entry.coding={};entry.vLabels={};opts.forEach(function(o,i){entry.coding[o]=i+1;entry.vLabels[i+1]=o;});if(field.metadata.checklist.allowOther){var n=opts.length+1;entry.coding['Other']=n;entry.vLabels[n]='Other (specify)';}}
+            }
+            scheme[field.id]=entry;
+          });
+          spssScheme=scheme;
+        } else if(typeof parsed==='object'){
+          spssScheme=parsed;
+        }
+        try{sessionStorage.setItem('csvboard_scheme',JSON.stringify(spssScheme));}catch(_){}
+        var coded=Object.keys(spssScheme).filter(function(k){return spssScheme[k]&&spssScheme[k].coding;}).length;
+        var lbl=document.getElementById('schemeLabel');
+        if(lbl)lbl.innerHTML='Scheme loaded ✓<span class="fmt-desc">'+coded+' coded fields</span>';
+        alert('Form JSON loaded: '+Object.keys(spssScheme).length+' fields, '+coded+' coded. Now export SPSS.');
+      }catch(err){alert('Could not read JSON: '+err.message);}
+    };
+    reader.readAsText(file);
+  };
   window.doExport=function(fmt){
     document.getElementById('exportMenu').classList.remove('open');
     try {
