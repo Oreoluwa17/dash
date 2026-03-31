@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+<!-- CSV Board index.html · v4 · dynamic form coding -->
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -416,8 +417,17 @@ generateBtn.addEventListener('click',function(){
     labelCol:  colLabel.value||null,
     headers:   parsedData.headers,
     rows:      filtered,
-    spssScheme: spssScheme||null
+    spssScheme: null   // scheme NOT stored in URL — too large, causes truncation
+    // scheme is re-applied at export time via the form JSON upload
   };
+
+  // Store scheme in sessionStorage so it survives the board.html open
+  if(spssScheme){
+    try{sessionStorage.setItem('csvboard_scheme',JSON.stringify(spssScheme));}
+    catch(e){console.warn('Could not cache scheme:',e);}
+  } else {
+    sessionStorage.removeItem('csvboard_scheme');
+  }
 
   var encoded;
   try{encoded=encodePayload(payload);}
